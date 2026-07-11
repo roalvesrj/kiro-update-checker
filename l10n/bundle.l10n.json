@@ -1,0 +1,17 @@
+{
+	"Could not determine the latest Kiro version. Please try again later.": "Could not determine the latest Kiro version. Please try again later.",
+	"Could not determine the current Kiro version. Please ensure Kiro is installed.": "Could not determine the current Kiro version. Please ensure Kiro is installed.",
+	"Download Latest": "Download Latest",
+	"Open Downloads Page": "Open Downloads Page",
+	"✅ Kiro is up to date! Installed version: {0}": "✅ Kiro is up to date! Installed version: {0}",
+	"🚀 New Kiro version available! {0} -> {1}.": "🚀 New Kiro version available! {0} -> {1}.",
+	"⤵️ Kiro Update Checker: Downloading {0}": "⤵️ Kiro Update Checker: Downloading {0}",
+	"❌ Kiro Update Checker: Failed to download {0}. Try manually.": "❌ Kiro Update Checker: Failed to download {0}. Try manually.",
+	"❌ Kiro Update Checker: Error saving the installer. {0}": "❌ Kiro Update Checker: Error saving the installer. {0}",
+	"🚀 New Kiro version ready to install! {0} -> {1}.": "🚀 New Kiro version ready to install! {0} -> {1}.",
+	"Dismiss": "Dismiss",
+	"Kiro Update Checker: This extension only works on Kiro IDE.": "Kiro Update Checker: This extension only works on Kiro IDE.",
+	"Install Now": "Install Now",
+	"Open folder": "Open folder",
+	"An error occurred while checking for updates. Please try again later.": "An error occurred while checking for updates. Please try again later."
+}

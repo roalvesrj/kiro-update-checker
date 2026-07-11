@@ -2,8 +2,13 @@
   "name": "kiro-update-checker",
   "displayName": "Kiro Update Checker",
   "description": "Automatically checks the official Kiro downloads page for new IDE releases. Intended for users running Kiro in Administrator mode, where the built-in update feature may not be available.",
-  "version": "0.1.2",
+  "version": "0.1.3",
+  "icon": "images/KUC-logo.png",
   "publisher": "RomuloAlves",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/roalvesrj/kiro-update-checker.git"
+  },
   "author": {
     "name": "Rômulo Alves",
     "email": "romulo@cabiros.com.br"
@@ -22,31 +27,31 @@
     "commands": [
       {
         "command": "kiro-update-checker.checkNow",
-        "title": "Kiro: Check for Updates Now"
+        "title": "%kiro-update-checker.checkNow.title%"
       }
     ],
     "configuration": {
-      "title": "Kiro Update Checker Configuration",
+      "title": "%kiroUpdateChecker.config.title%",
       "properties": {
         "kiroUpdateChecker.checkInterval": {
           "type": "number",
           "default": 60,
-          "description": "Interval in minutes to check for updates. Set to 0 to disable automatic checks."
+          "description": "%kiroUpdateChecker.checkInterval.description%"
         },
         "kiroUpdateChecker.enableOnStartup": {
           "type": "boolean",
           "default": true,
-          "description": "Whether to check for updates on startup."
+          "description": "%kiroUpdateChecker.enableOnStartup.description%"
         },
         "kiroUpdateChecker.autoDownload": {
           "type": "boolean",
           "default": false,
-          "description": "Whether to automatically download and install new versions."
+          "description": "%kiroUpdateChecker.autoDownload.description%"
         },
         "kiroUpdateChecker.downloadFolder": {
           "type": "string",
           "default": "",
-          "description": "Custom folder to download updates to. Leave empty to use the default Downloads folder."
+          "description": "%kiroUpdateChecker.downloadFolder.description%"
         }
       }
     }

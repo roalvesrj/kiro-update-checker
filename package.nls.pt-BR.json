@@ -1,0 +1,8 @@
+{
+	"kiro-update-checker.checkNow.title": "Kiro: Verificar Atualizações Agora",
+	"kiroUpdateChecker.config.title": "Configuração do Kiro Update Checker",
+	"kiroUpdateChecker.checkInterval.description": "Intervalo em minutos para verificar atualizações. Defina 0 para desativar.",
+	"kiroUpdateChecker.enableOnStartup.description": "Se deve verificar atualizações ao iniciar.",
+	"kiroUpdateChecker.autoDownload.description": "Se deve baixar e instalar novas versões automaticamente.",
+	"kiroUpdateChecker.downloadFolder.description": "Pasta personalizada para baixar atualizações. Deixe vazio para usar a pasta Downloads padrão."
+}
