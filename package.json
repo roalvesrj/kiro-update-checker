@@ -1,0 +1,79 @@
+{
+  "name": "kiro-update-checker",
+  "displayName": "Kiro Update Checker",
+  "description": "Automatically checks the official Kiro downloads page for new IDE releases. Intended for users running Kiro in Administrator mode, where the built-in update feature may not be available.",
+  "version": "0.1.2",
+  "publisher": "RomuloAlves",
+  "author": {
+    "name": "Rômulo Alves",
+    "email": "romulo@cabiros.com.br"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "kiro-update-checker.checkNow",
+        "title": "Kiro: Check for Updates Now"
+      }
+    ],
+    "configuration": {
+      "title": "Kiro Update Checker Configuration",
+      "properties": {
+        "kiroUpdateChecker.checkInterval": {
+          "type": "number",
+          "default": 60,
+          "description": "Interval in minutes to check for updates. Set to 0 to disable automatic checks."
+        },
+        "kiroUpdateChecker.enableOnStartup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to check for updates on startup."
+        },
+        "kiroUpdateChecker.autoDownload": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to automatically download and install new versions."
+        },
+        "kiroUpdateChecker.downloadFolder": {
+          "type": "string",
+          "default": "",
+          "description": "Custom folder to download updates to. Leave empty to use the default Downloads folder."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "~1.75.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "24.x",
+    "typescript-eslint": "^8.61.1",
+    "eslint": "^10.5.0",
+    "typescript": "^6.0.3",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.0.0"
+  },
+  "dependencies": {},
+  "overrides": {
+    "diff": "^8.0.4",
+    "serialize-javascript": "^7.0.6"
+  }
+}
