@@ -1,6 +1,4 @@
 {
-	"kiro-update-checker.displayName": "Kiro Update Checker",
-	"kiro-update-checker.description": "Verifica automaticamente a página oficial de downloads do Kiro por novas versões da IDE. Ideal para usuários executando o Kiro em modo Administrador, onde a atualização embutida pode não estar disponível.",
 	"kiro-update-checker.checkNow.title": "Kiro: Verificar Atualizações Agora",
 	"kiroUpdateChecker.config.title": "Configuração do Kiro Update Checker",
 	"kiroUpdateChecker.checkInterval.description": "Intervalo em minutos para verificar atualizações. Defina 0 para desativar.",

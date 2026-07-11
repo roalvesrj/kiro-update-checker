@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.1.4] - 2026-07-11
+### Fixed
+- displayName and description revertidos para texto fixo (Open VSX não resolve %key%)
+
 ## [0.1.3] - 2026-07-11
 ### Added
 - Localization support: English, Portuguese (pt-BR), Spanish (es) for both settings and runtime messages
