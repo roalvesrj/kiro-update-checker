@@ -39,19 +39,18 @@ jobs:
         id: version
         run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
-      - name: Extract changelog entry
-        id: changelog
-        shell: node {0}
+      - name: Write release body
         run: |
-          const fs = require('fs');
-          const version = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
-          const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
-          const sections = changelog.split(/\n(?=## )/);
-          const versionHeading = `## [${version}]`;
-          const found = sections.find(s => s.startsWith(versionHeading));
-          const body = found ? found.trim() : `Version ${version} of Kiro Update Checker.`;
-          const escaped = body.replace(/%/g, '%25').replace(/\n/g, '%0A').replace(/\r/g, '%0D');
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `body=${escaped}\n`);
+          node -e "
+            const fs = require('fs');
+            const version = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
+            const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+            const sections = changelog.split(/\n(?=## )/);
+            const heading = '## [' + version + ']';
+            const found = sections.find(s => s.startsWith(heading));
+            const body = found ? found.trim() : 'Version ' + version + ' of Kiro Update Checker.';
+            fs.writeFileSync('RELEASE_BODY.md', body);
+          "
 
       - name: Create Release
         env:
@@ -60,5 +59,5 @@ jobs:
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: v${{ steps.version.outputs.version }}
-          body: ${{ steps.changelog.outputs.body }}
+          body_path: RELEASE_BODY.md
           files: kiro-update-checker-${{ steps.version.outputs.version }}.vsix
