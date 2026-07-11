@@ -70,4 +70,5 @@ jobs:
             echo "OVSX_TOKEN not set — skipping publish"
             exit 0
           fi
+          npx ovsx create-namespace roalvesrj -p "$OVSX_TOKEN" || true
           npx ovsx publish kiro-update-checker-${{ steps.version.outputs.version }}.vsix -p "$OVSX_TOKEN"
