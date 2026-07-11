@@ -93,10 +93,11 @@ function isKiro(): boolean {
 
 export function activate(context: vscode.ExtensionContext) {
 	extensionVersion = context.extension.packageJSON.version || '0.1.0';
-	loadTranslations(context);
 
 	outputChannel = vscode.window.createOutputChannel('Kiro Update Checker');
 	context.subscriptions.push(outputChannel);
+
+	loadTranslations(context);
 
 	log('Kiro Update Checker activated.');
 
@@ -204,7 +205,7 @@ async function checkForUpdates(context: vscode.ExtensionContext, manualCheck: bo
 					const downloadUrl = buildDownloadUrl(latestVersion);
 					log(`Opening browser to download URL: ${downloadUrl}`);
 					await vscode.env.openExternal(vscode.Uri.parse(downloadUrl));
-				} else if (selection === 'Open Downloads Page') {
+				} else if (selection === t('Open Downloads Page')) {
 					await vscode.env.openExternal(vscode.Uri.parse(DOWNLOADS_PAGE_URL));
 				}
 			}
@@ -292,7 +293,13 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 			return new Promise<void>((resolve) => {
 				let completed = false;
 
-				const downloadFile = (url: string) => {
+				const downloadFile = (url: string, redirectDepth: number = 0) => {
+					if (redirectDepth > 5) {
+						log('Too many redirects. Aborting download.');
+						vscode.window.showErrorMessage(t('❌ Kiro Update Checker: Failed to download {0}. Try manually.', latestVersion));
+						resolve();
+						return;
+					}
 					const request = https.get(url, {
 						headers: { 'User-Agent': userAgentStr() },
 						timeout: 120000
@@ -305,7 +312,7 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 							const redirectUrl = location.startsWith('http')
 								? location
 								: new URL(location, url).toString();
-							downloadFile(redirectUrl);
+							downloadFile(redirectUrl, redirectDepth + 1);
 							return;
 						}
 
@@ -403,7 +410,7 @@ function showInstallNotification(context: vscode.ExtensionContext, currentVersio
 			const terminal = vscode.window.createTerminal({ name: 'Kiro Installer', shellPath });
 			terminal.sendText(openCommand, true);
 			terminal.show();
-		} else if (selection === 'Open folder') {
+		} else if (selection === t('Open folder')) {
 			const folderPath = path.dirname(filePath);
 			log(`Opening folder: ${folderPath}`);
 			const opened = await vscode.env.openExternal(vscode.Uri.file(folderPath));
@@ -430,7 +437,12 @@ function formatBytes(bytes: number): string {
 
 function fetchLatestVersion(): Promise<string | null> {
 	return new Promise((resolve) => {
-		const followRedirect = (url: string) => {
+		const followRedirect = (url: string, depth: number = 0) => {
+			if (depth > 5) {
+				log('Too many redirects fetching downloads page.');
+				resolve(null);
+				return;
+			}
 			const request = https.get(url, { 
 				headers: { 'User-Agent': userAgentStr() },
 				timeout: 15000
@@ -445,7 +457,7 @@ function fetchLatestVersion(): Promise<string | null> {
 						? location 
 						: new URL(location, url).toString();
 					
-					followRedirect(redirectUrl);
+					followRedirect(redirectUrl, depth + 1);
 					return;
 				}
 

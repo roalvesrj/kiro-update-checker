@@ -1,7 +1,7 @@
 {
   "name": "kiro-update-checker",
-  "displayName": "Kiro Update Checker",
-  "description": "Automatically checks the official Kiro downloads page for new IDE releases. Intended for users running Kiro in Administrator mode, where the built-in update feature may not be available.",
+  "displayName": "%kiro-update-checker.displayName%",
+  "description": "%kiro-update-checker.description%",
   "version": "0.1.3",
   "icon": "images/KUC-logo.png",
   "publisher": "RomuloAlves",

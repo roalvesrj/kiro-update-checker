@@ -33,7 +33,7 @@ jobs:
           run: npm test
 
       - name: Package VSIX
-        run: npx vsce package --allow-missing-repository
+        run: npx vsce package
 
       - name: Read version
         id: version

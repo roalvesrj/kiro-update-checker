@@ -43,30 +43,8 @@ This extension contributes the following settings:
 
 ### 0.1.3
 
-- Localization support: English, Portuguese (pt-BR), Spanish (es)
+- Localization support: English, Portuguese (pt-BR), Spanish (es) for settings and messages
 - Protection: extension only activates on Kiro IDE
-- Download integrity validation (MZ header, size check)
 - Custom extension icon
 - Auto-generated release body from CHANGELOG
-
-### 0.1.2
-
-- Fix version detection for Kiro (searches multiple paths for current version)
-- Fix broken manual check notification (Download Latest / Open Downloads Page)
-- Fix relative URL redirect handling in HTTP requests
-- Add download integrity validation (PE header check, size verification)
-- Fix file save failures on Windows (`close` event instead of `finish`)
-- Add `copyFileSync` fallback when rename fails
-- Generalize parser for cross-platform download links
-- Proper HTTP timeout handling via `timeout` event
-
-### 0.1.1
-
-- Fix configuration property names to match settings UI
-- Fix browser download not opening when current version is unknown
-- Add `onDidChangeConfiguration` listener
-- Dynamic User-Agent based on extension version
-- Platform-aware shell for auto-install
-- Handle `openExternal` failures gracefully
-- Clean up HTTP response objects on redirect
-- Remove unused `node-html-parser` dependency
+- Safety: max redirect hops, Output panel logging fixed, button comparisons use translated text
