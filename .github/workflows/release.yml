@@ -43,7 +43,7 @@ jobs:
         id: changelog
         shell: node {0}
         run: |
-            const fs = require('fs');
+          const fs = require('fs');
           const version = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
           const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
           const sections = changelog.split(/\n(?=## )/);
