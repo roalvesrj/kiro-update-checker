@@ -41,6 +41,10 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 0.1.4
+
+- Publisher changed to `roalvesrj` for auto-verified namespace on Open VSX
+
 ### 0.1.3
 
 - Localization support: English, Portuguese (pt-BR), Spanish (es) for settings and messages
