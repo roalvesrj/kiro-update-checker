@@ -66,9 +66,3 @@ jobs:
         uses: openvsx/publish@latest
         with:
           pat: ${{ secrets.OVSX_TOKEN }}
-
-      - name: Publish to VS Code Marketplace
-        if: false
-        env:
-          VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
-        run: echo "vsce publish disabled — set VSCE_TOKEN secret and remove if: false to enable"
