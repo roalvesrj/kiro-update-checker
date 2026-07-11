@@ -36,6 +36,17 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 0.1.2
+
+- Fix version detection for Kiro (searches multiple paths for current version)
+- Fix broken manual check notification (Download Latest / Open Downloads Page)
+- Fix relative URL redirect handling in HTTP requests
+- Add download integrity validation (PE header check, size verification)
+- Fix file save failures on Windows (`close` event instead of `finish`)
+- Add `copyFileSync` fallback when rename fails
+- Generalize parser for cross-platform download links
+- Proper HTTP timeout handling via `timeout` event
+
 ### 0.1.1
 
 - Fix configuration property names to match settings UI
