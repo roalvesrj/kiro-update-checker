@@ -147,6 +147,28 @@ function log(message: string) {
 	}
 }
 
+interface PlatformInfo {
+	platform: string;
+	arch: string;
+	ext: string;
+}
+
+function detectPlatform(): PlatformInfo | null {
+	const plat = process.platform;
+	const arch = process.arch;
+
+	if (plat === 'win32') {
+		return { platform: 'win32', arch: 'x64', ext: 'exe' };
+	}
+	if (plat === 'darwin') {
+		return { platform: 'darwin', arch: arch === 'arm64' ? 'arm64' : 'x64', ext: 'dmg' };
+	}
+	if (plat === 'linux') {
+		return { platform: 'linux', arch: arch === 'arm64' ? 'arm64' : 'x64', ext: 'deb' };
+	}
+	return null;
+}
+
 function getDownloadFolder(): string {
 	const config = vscode.workspace.getConfiguration('kiroUpdateChecker');
 	const customPath = config.get<string>('downloadFolder', '');
@@ -202,9 +224,15 @@ async function checkForUpdates(context: vscode.ExtensionContext, manualCheck: bo
 					t('Open Downloads Page')
 				);
 				if (selection === t('Download Latest')) {
-					const downloadUrl = buildDownloadUrl(latestVersion);
-					log(`Opening browser to download URL: ${downloadUrl}`);
-					await vscode.env.openExternal(vscode.Uri.parse(downloadUrl));
+					const info = detectPlatform();
+					if (!info) {
+						log('Unsupported platform for direct download. Opening browser page.');
+						await vscode.env.openExternal(vscode.Uri.parse(DOWNLOADS_PAGE_URL));
+					} else {
+						const downloadUrl = buildDownloadUrl(latestVersion, info);
+						log(`Opening browser to download URL: ${downloadUrl}`);
+						await vscode.env.openExternal(vscode.Uri.parse(downloadUrl));
+					}
 				} else if (selection === t('Open Downloads Page')) {
 					await vscode.env.openExternal(vscode.Uri.parse(DOWNLOADS_PAGE_URL));
 				}
@@ -255,11 +283,17 @@ async function handleManualDownload(context: vscode.ExtensionContext, currentVer
 		t('Dismiss')
 	).then(async selection => {
 		if (selection === t('Download Latest')) {
-			const downloadUrl = buildDownloadUrl(latestVersion);
-			log(`Opening browser to download URL: ${downloadUrl}`);
-			const opened = await vscode.env.openExternal(vscode.Uri.parse(downloadUrl));
-			if (!opened) {
-				log('Failed to open browser.');
+			const info = detectPlatform();
+			if (!info) {
+				log('Unsupported platform. Opening downloads page instead.');
+				await vscode.env.openExternal(vscode.Uri.parse(DOWNLOADS_PAGE_URL));
+			} else {
+				const downloadUrl = buildDownloadUrl(latestVersion, info);
+				log(`Opening browser to download URL: ${downloadUrl}`);
+				const opened = await vscode.env.openExternal(vscode.Uri.parse(downloadUrl));
+				if (!opened) {
+					log('Failed to open browser.');
+				}
 			}
 		} else if (selection === t('Dismiss')) {
 			log(`User dismissed notifications for version ${latestVersion}.`);
@@ -270,9 +304,16 @@ async function handleManualDownload(context: vscode.ExtensionContext, currentVer
 
 async function handleAutoDownload(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, manualCheck: boolean) {
 	log('Mode: Auto-download and install.');
-	const downloadUrl = buildDownloadUrl(latestVersion);
+	const info = detectPlatform();
+	if (!info) {
+		log('Unsupported platform for auto-download. Falling back to manual download.');
+		handleManualDownload(context, currentVersion, latestVersion);
+		return;
+	}
+
+	const downloadUrl = buildDownloadUrl(latestVersion, info);
 	const downloadFolder = getDownloadFolder();
-	const fileName = `kiro-ide-${latestVersion}-stable-win32-x64.exe`;
+	const fileName = `kiro-ide-${latestVersion}-stable-${info.platform}-${info.arch}.${info.ext}`;
 	const filePath = path.join(downloadFolder, fileName);
 
 	if (fs.existsSync(filePath)) {
@@ -393,9 +434,20 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 }
 
 function showInstallNotification(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, filePath: string) {
-	const isWin = process.platform === 'win32';
-	const shellPath = isWin ? 'cmd.exe' : undefined;
-	const openCommand = isWin ? `start "" "${filePath}"` : `open "${filePath}"`;
+	const plat = process.platform;
+	let shellPath: string | undefined;
+	let openCommand: string;
+
+	if (plat === 'win32') {
+		shellPath = 'cmd.exe';
+		openCommand = `start "" "${filePath}"`;
+	} else if (plat === 'darwin') {
+		shellPath = undefined;
+		openCommand = `open "${filePath}"`;
+	} else {
+		shellPath = undefined;
+		openCommand = `xdg-open "${filePath}"`;
+	}
 
 	vscode.window.showInformationMessage(
 		t('🚀 New Kiro version ready to install! {0} -> {1}.', currentVersion, latestVersion),
@@ -579,8 +631,8 @@ function compareVersions(a: string, b: string): number {
 	return 0;
 }
 
-function buildDownloadUrl(version: string): string {
-	return `https://prod.download.desktop.kiro.dev/releases/stable/win32-x64/signed/${version}/kiro-ide-${version}-stable-win32-x64.exe`;
+function buildDownloadUrl(version: string, info: PlatformInfo): string {
+	return `https://prod.download.desktop.kiro.dev/releases/stable/${info.platform}-${info.arch}/signed/${version}/kiro-ide-${version}-stable-${info.platform}-${info.arch}.${info.ext}`;
 }
 
 export function deactivate() {
@@ -588,4 +640,4 @@ export function deactivate() {
 }
 
 // Exported for unit testing
-export { compareVersions, formatBytes, buildDownloadUrl, parseVersionFromHTML };
+export { compareVersions, formatBytes, buildDownloadUrl, parseVersionFromHTML, detectPlatform };

@@ -1,5 +1,15 @@
 # Change Log
 
+## [0.2.0] - 2026-07-11
+### Added
+- Cross-platform download support: auto-detects Windows (.exe), macOS (.dmg) and Linux (.deb)
+- `detectPlatform()` utility exported for testing
+- Platform-aware install command: `start` (Windows), `open` (macOS), `xdg-open` (Linux)
+
+### Changed
+- `buildDownloadUrl()` now requires a `PlatformInfo` parameter
+- Fallback to downloads page when platform is unsupported
+
 ## [0.1.4] - 2026-07-11
 ### Fixed
 - displayName and description revertidos para texto fixo (Open VSX não resolve %key%)

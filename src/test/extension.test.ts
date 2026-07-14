@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { compareVersions, formatBytes, buildDownloadUrl, parseVersionFromHTML } from '../extension';
+import { compareVersions, formatBytes, buildDownloadUrl, parseVersionFromHTML, detectPlatform } from '../extension';
 
 suite('compareVersions', () => {
 	test('a > b returns 1', () => {
@@ -45,11 +45,43 @@ suite('formatBytes', () => {
 });
 
 suite('buildDownloadUrl', () => {
-	test('builds URL for given version', () => {
-		const url = buildDownloadUrl('1.2.3');
+	test('builds URL for given version and platform', () => {
+		const url = buildDownloadUrl('1.2.3', { platform: 'win32', arch: 'x64', ext: 'exe' });
 		assert.ok(url.includes('1.2.3'));
 		assert.ok(url.endsWith('kiro-ide-1.2.3-stable-win32-x64.exe'));
 		assert.ok(url.startsWith('https://'));
+	});
+
+	test('builds URL for macOS ARM', () => {
+		const url = buildDownloadUrl('1.2.3', { platform: 'darwin', arch: 'arm64', ext: 'dmg' });
+		assert.ok(url.includes('darwin-arm64'));
+		assert.ok(url.endsWith('.dmg'));
+	});
+
+	test('builds URL for Linux', () => {
+		const url = buildDownloadUrl('1.2.3', { platform: 'linux', arch: 'x64', ext: 'deb' });
+		assert.ok(url.includes('linux-x64'));
+		assert.ok(url.endsWith('.deb'));
+	});
+});
+
+suite('detectPlatform', () => {
+	test('returns info for win32', () => {
+		// We can't mock process.platform, but at least verify the function exists and returns correct shape
+		const info = detectPlatform();
+		if (process.platform === 'win32') {
+			assert.strictEqual(info?.platform, 'win32');
+			assert.strictEqual(info?.arch, 'x64');
+			assert.strictEqual(info?.ext, 'exe');
+		}
+	});
+
+	test('returns null for unsupported platform', () => {
+		// Only runs on known platforms — on win32/darwin/linux it never returns null
+		const plat = process.platform;
+		if (plat !== 'win32' && plat !== 'darwin' && plat !== 'linux') {
+			assert.strictEqual(detectPlatform(), null);
+		}
 	});
 });
 

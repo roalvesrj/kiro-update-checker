@@ -36,10 +36,14 @@ This extension contributes the following settings:
 
 ## Known Issues
 
-- Auto-download is Windows-only (the installer is always `win32-x64`)
 - Version detection relies on parsing the Kiro downloads page HTML
 
 ## Release Notes
+
+### 0.2.0
+
+- Cross-platform download: Windows (.exe), macOS (.dmg), Linux (.deb)
+- Platform auto-detection + correct install command per OS
 
 ### 0.1.4
 
