@@ -1,0 +1,19 @@
+{
+	"Could not determine the latest Kiro version. Please try again later.": "최신 Kiro 버전을 확인할 수 없습니다. 나중에 다시 시도해 주세요.",
+	"Could not determine the current Kiro version. Please ensure Kiro is installed.": "현재 Kiro 버전을 확인할 수 없습니다. Kiro가 설치되어 있는지 확인해 주세요.",
+	"Download Latest": "최신 버전 다운로드",
+	"Open Downloads Page": "다운로드 페이지 열기",
+	"✅ Kiro is up to date! Installed version: {0}": "✅ Kiro가 최신 상태입니다! 설치된 버전: {0}",
+	"🚀 New Kiro version available! {0} -> {1}.": "🚀 새 Kiro 버전을 사용할 수 있습니다! {0} -> {1}.",
+	"⤵️ Kiro Update Checker: Downloading {0}": "⤵️ Kiro Update Checker: {0} 다운로드 중",
+	"❌ Kiro Update Checker: Failed to download {0}. Try manually.": "❌ Kiro Update Checker: {0} 다운로드에 실패했습니다. 수동으로 시도해 주세요.",
+	"❌ Kiro Update Checker: Error saving the installer. {0}": "❌ Kiro Update Checker: 설치 프로그램 저장 중 오류가 발생했습니다. {0}",
+	"🚀 New Kiro version ready to install! {0} -> {1}.": "🚀 새 Kiro 버전 설치 준비 완료! {0} -> {1}.",
+	"Dismiss": "무시",
+	"Kiro Update Checker: This extension only works on Kiro IDE.": "Kiro Update Checker: 이 확장은 Kiro IDE에서만 작동합니다.",
+	"Install Now": "지금 설치",
+	"Open folder": "폴더 열기",
+	"An error occurred while checking for updates. Please try again later.": "업데이트 확인 중 오류가 발생했습니다. 나중에 다시 시도해 주세요.",
+	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker: 해당 플랫폼({0})에서 직접 다운로드를 사용할 수 없습니다. 다운로드 페이지를 방문하세요.",
+	"Release Notes": "릴리스 노트"
+}

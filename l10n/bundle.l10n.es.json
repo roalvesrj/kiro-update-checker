@@ -13,5 +13,7 @@
 	"Kiro Update Checker: This extension only works on Kiro IDE.": "Kiro Update Checker: Esta extensión solo funciona en Kiro IDE.",
 	"Install Now": "Instalar Ahora",
 	"Open folder": "Abrir carpeta",
-	"An error occurred while checking for updates. Please try again later.": "Ocurrió un error al buscar actualizaciones. Inténtelo de nuevo más tarde."
+	"An error occurred while checking for updates. Please try again later.": "Ocurrió un error al buscar actualizaciones. Inténtelo de nuevo más tarde.",
+	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker: Descarga directa no disponible para su plataforma ({0}). Visite la página de descargas.",
+	"Release Notes": "Notas de la Versión"
 }

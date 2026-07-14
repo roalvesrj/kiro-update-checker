@@ -1,0 +1,15 @@
+{
+	"kiro-update-checker.checkNow.title": "Kiro: アップデートを確認",
+	"kiroUpdateChecker.config.title": "Kiro Update Checker の設定",
+	"kiroUpdateChecker.checkInterval.description": "アップデートを確認する間隔（分）。0 に設定すると自動確認を無効にします。",
+	"kiroUpdateChecker.enableOnStartup.description": "起動時にアップデートを確認するかどうか。",
+	"kiroUpdateChecker.autoDownload.description": "新しいバージョンを自動的にダウンロードしてインストールするかどうか。",
+	"kiroUpdateChecker.downloadFolder.description": "ダウンロード先のカスタムフォルダー。空欄にするとデフォルトの Downloads フォルダーを使用します。",
+	"kiroUpdateChecker.packageFormat.description": "ダウンロードするパッケージ形式を上書きします。自動検出するには 'auto' に設定してください。",
+	"kiroUpdateChecker.packageFormat.enumAuto": "自動検出（推奨）",
+	"kiroUpdateChecker.packageFormat.enumDeb": ".deb (Debian/Ubuntu)",
+	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Universal Linux)",
+	"kiroUpdateChecker.packageFormat.enumAppImage": ".AppImage (Universal Linux)",
+	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
+	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)"
+}

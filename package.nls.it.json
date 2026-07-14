@@ -1,0 +1,15 @@
+{
+	"kiro-update-checker.checkNow.title": "Kiro: Controlla Aggiornamenti Ora",
+	"kiroUpdateChecker.config.title": "Configurazione Kiro Update Checker",
+	"kiroUpdateChecker.checkInterval.description": "Intervallo in minuti per il controllo degli aggiornamenti. Imposta 0 per disattivare.",
+	"kiroUpdateChecker.enableOnStartup.description": "Controlla gli aggiornamenti all'avvio.",
+	"kiroUpdateChecker.autoDownload.description": "Scarica e installa automaticamente le nuove versioni.",
+	"kiroUpdateChecker.downloadFolder.description": "Cartella personalizzata per i download. Lascia vuoto per usare la cartella Download predefinita.",
+	"kiroUpdateChecker.packageFormat.description": "Forza il formato del pacchetto per i download. Imposta 'auto' per il rilevamento automatico.",
+	"kiroUpdateChecker.packageFormat.enumAuto": "Rilevamento automatico (consigliato)",
+	"kiroUpdateChecker.packageFormat.enumDeb": ".deb (Debian/Ubuntu)",
+	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Linux Universale)",
+	"kiroUpdateChecker.packageFormat.enumAppImage": ".AppImage (Linux Universale)",
+	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
+	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)"
+}

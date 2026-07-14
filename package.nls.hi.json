@@ -1,0 +1,15 @@
+{
+	"kiro-update-checker.checkNow.title": "Kiro: अभी अपडेट जाँचें",
+	"kiroUpdateChecker.config.title": "Kiro Update Checker कॉन्फ़िगरेशन",
+	"kiroUpdateChecker.checkInterval.description": "अपडेट जाँचने का अंतराल (मिनटों में)। स्वचालित जाँच अक्षम करने के लिए 0 सेट करें।",
+	"kiroUpdateChecker.enableOnStartup.description": "स्टार्टअप पर अपडेट जाँचें या नहीं।",
+	"kiroUpdateChecker.autoDownload.description": "नए संस्करणों को स्वचालित रूप से डाउनलोड और इंस्टॉल करें।",
+	"kiroUpdateChecker.downloadFolder.description": "अपडेट डाउनलोड करने के लिए कस्टम फ़ोल्डर। डिफ़ॉल्ट Downloads फ़ोल्डर उपयोग करने के लिए खाली छोड़ें।",
+	"kiroUpdateChecker.packageFormat.description": "डाउनलोड के लिए पैकेज प्रारूप बदलें। स्वचालित पहचान के लिए 'auto' सेट करें।",
+	"kiroUpdateChecker.packageFormat.enumAuto": "स्वचालित पहचान (अनुशंसित)",
+	"kiroUpdateChecker.packageFormat.enumDeb": ".deb (Debian/Ubuntu)",
+	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Universal Linux)",
+	"kiroUpdateChecker.packageFormat.enumAppImage": ".AppImage (Universal Linux)",
+	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
+	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)"
+}

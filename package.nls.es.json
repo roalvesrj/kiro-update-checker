@@ -4,5 +4,12 @@
 	"kiroUpdateChecker.checkInterval.description": "Intervalo en minutos para buscar actualizaciones. Establezca 0 para desactivar.",
 	"kiroUpdateChecker.enableOnStartup.description": "Si debe buscar actualizaciones al iniciar.",
 	"kiroUpdateChecker.autoDownload.description": "Si debe descargar e instalar nuevas versiones automáticamente.",
-	"kiroUpdateChecker.downloadFolder.description": "Carpeta personalizada para descargar actualizaciones. Deje vacío para usar la carpeta de Descargas predeterminada."
+	"kiroUpdateChecker.downloadFolder.description": "Carpeta personalizada para descargar actualizaciones. Deje vacío para usar la carpeta de Descargas predeterminada.",
+	"kiroUpdateChecker.packageFormat.description": "Anular el formato del paquete para descargas. Establezca 'auto' para detección automática.",
+	"kiroUpdateChecker.packageFormat.enumAuto": "Automático (recomendado)",
+	"kiroUpdateChecker.packageFormat.enumDeb": ".deb (Debian/Ubuntu)",
+	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Linux Universal)",
+	"kiroUpdateChecker.packageFormat.enumAppImage": ".AppImage (Linux Universal)",
+	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
+	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)"
 }
