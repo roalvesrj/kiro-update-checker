@@ -153,6 +153,23 @@ interface PlatformInfo {
 	ext: string;
 }
 
+function detectLinuxDistro(): string {
+	try {
+		if (process.platform !== 'linux') { return 'unknown'; }
+		const osRelease = fs.readFileSync('/etc/os-release', 'utf8');
+		const idMatch = osRelease.match(/^ID=["']?(\w+)["']?/m);
+		const idLikeMatch = osRelease.match(/^ID_LIKE=["']?([\w\s]+)["']?/m);
+		const id = idMatch ? idMatch[1].toLowerCase() : '';
+		const idLike = idLikeMatch ? idLikeMatch[1].toLowerCase() : '';
+		if (id === 'ubuntu' || id === 'debian' || idLike.includes('debian')) {
+			return 'debian';
+		}
+		return 'universal';
+	} catch {
+		return 'universal';
+	}
+}
+
 function detectPlatform(): PlatformInfo | null {
 	const plat = process.platform;
 	const arch = process.arch;
@@ -164,7 +181,14 @@ function detectPlatform(): PlatformInfo | null {
 		return { platform: 'darwin', arch: arch === 'arm64' ? 'arm64' : 'x64', ext: 'dmg' };
 	}
 	if (plat === 'linux') {
-		return { platform: 'linux', arch: arch === 'arm64' ? 'arm64' : 'x64', ext: 'deb' };
+		const config = vscode.workspace.getConfiguration('kiroUpdateChecker');
+		const customExt = config.get<string>('packageFormat', '');
+		if (customExt) {
+			return { platform: 'linux', arch: arch === 'arm64' ? 'arm64' : 'x64', ext: customExt };
+		}
+		const distro = detectLinuxDistro();
+		const ext = distro === 'debian' ? 'deb' : 'tar.gz';
+		return { platform: 'linux', arch: arch === 'arm64' ? 'arm64' : 'x64', ext };
 	}
 	return null;
 }
@@ -302,6 +326,21 @@ async function handleManualDownload(context: vscode.ExtensionContext, currentVer
 	});
 }
 
+async function checkUrl(url: string): Promise<number | null> {
+	return new Promise((resolve) => {
+		const request = https.request(url, {
+			method: 'HEAD',
+			headers: { 'User-Agent': userAgentStr() },
+			timeout: 10000
+		}, (response) => {
+			resolve(response.statusCode || null);
+		});
+		request.on('error', () => resolve(null));
+		request.on('timeout', () => { request.destroy(); resolve(null); });
+		request.end();
+	});
+}
+
 async function handleAutoDownload(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, manualCheck: boolean) {
 	log('Mode: Auto-download and install.');
 	const info = detectPlatform();
@@ -312,6 +351,21 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 	}
 
 	const downloadUrl = buildDownloadUrl(latestVersion, info);
+
+	// Check if the URL is actually accessible before downloading
+	const status = await checkUrl(downloadUrl);
+	if (status === 403) {
+		log(`Download URL returned 403 Forbidden: ${downloadUrl}`);
+		const selection = await vscode.window.showErrorMessage(
+			t('❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.', info.ext),
+			t('Open Downloads Page')
+		);
+		if (selection === t('Open Downloads Page')) {
+			await vscode.env.openExternal(vscode.Uri.parse(DOWNLOADS_PAGE_URL));
+		}
+		return;
+	}
+
 	const downloadFolder = getDownloadFolder();
 	const fileName = `kiro-ide-${latestVersion}-stable-${info.platform}-${info.arch}.${info.ext}`;
 	const filePath = path.join(downloadFolder, fileName);
@@ -554,12 +608,20 @@ function handleResponse(response: IncomingMessage, resolve: (value: string | nul
 }
 
 function parseVersionFromHTML(html: string): string | null {
-	// Extract version from download links: kiro-ide-<version>-stable-<platform>-<arch>.<ext>
-	const pattern = /kiro-ide-(\d+\.\d+\.\d+)-stable-[a-z0-9]+-[a-z0-9]+\.(?:exe|dmg|pkg|deb|tar\.gz|AppImage|zip)/g;
+	// Pattern 1: JSON "currentVersion":"X.Y.Z" (server-rendered data)
+	const jsonPattern = /"currentVersion"\s*:\s*"(\d+\.\d+\.\d+)"/;
+	const jsonMatch = html.match(jsonPattern);
+	if (jsonMatch) {
+		log(`Found version from JSON: ${jsonMatch[1]}`);
+		return jsonMatch[1];
+	}
+
+	// Pattern 2: download links kiro-ide-<version>-stable-<platform>-<arch>.<ext>
+	const linkPattern = /kiro-ide-(\d+\.\d+\.\d+)-stable-[a-z0-9]+-[a-z0-9]+\.(?:exe|dmg|pkg|deb|tar\.gz|AppImage|zip)/g;
 	let match;
 	let highestVersion: string | null = null;
 
-	while ((match = pattern.exec(html)) !== null) {
+	while ((match = linkPattern.exec(html)) !== null) {
 		const version = match[1];
 		if (!highestVersion || compareVersions(version, highestVersion) > 0) {
 			highestVersion = version;
@@ -567,7 +629,7 @@ function parseVersionFromHTML(html: string): string | null {
 	}
 
 	if (highestVersion) {
-		log(`Found version in HTML: ${highestVersion}`);
+		log(`Found version from download links: ${highestVersion}`);
 	} else {
 		log('No version found in HTML.');
 	}
@@ -632,7 +694,12 @@ function compareVersions(a: string, b: string): number {
 }
 
 function buildDownloadUrl(version: string, info: PlatformInfo): string {
-	return `https://prod.download.desktop.kiro.dev/releases/stable/${info.platform}-${info.arch}/signed/${version}/kiro-ide-${version}-stable-${info.platform}-${info.arch}.${info.ext}`;
+	// Linux has an extra path segment: /deb/ or /tar/ before the filename
+	let extraPath = '';
+	if (info.platform === 'linux') {
+		extraPath = info.ext === 'tar.gz' ? 'tar/' : `${info.ext}/`;
+	}
+	return `https://prod.download.desktop.kiro.dev/releases/stable/${info.platform}-${info.arch}/signed/${version}/${extraPath}kiro-ide-${version}-stable-${info.platform}-${info.arch}.${info.ext}`;
 }
 
 export function deactivate() {
@@ -640,4 +707,4 @@ export function deactivate() {
 }
 
 // Exported for unit testing
-export { compareVersions, formatBytes, buildDownloadUrl, parseVersionFromHTML, detectPlatform };
+export { compareVersions, formatBytes, buildDownloadUrl, parseVersionFromHTML, detectPlatform, detectLinuxDistro };

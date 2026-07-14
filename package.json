@@ -48,12 +48,33 @@
           "default": false,
           "description": "%kiroUpdateChecker.autoDownload.description%"
         },
-        "kiroUpdateChecker.downloadFolder": {
-          "type": "string",
-          "default": "",
-          "description": "%kiroUpdateChecker.downloadFolder.description%"
-        }
-      }
+		"kiroUpdateChecker.downloadFolder": {
+		  "type": "string",
+		  "default": "",
+		  "description": "%kiroUpdateChecker.downloadFolder.description%"
+		},
+		"kiroUpdateChecker.packageFormat": {
+		  "type": "string",
+		  "default": "",
+		  "description": "%kiroUpdateChecker.packageFormat.description%",
+		  "enum": [
+		    "",
+		    "deb",
+		    "tar.gz",
+		    "AppImage",
+		    "dmg",
+		    "exe"
+		  ],
+		  "enumDescriptions": [
+		    "%kiroUpdateChecker.packageFormat.enumAuto%",
+		    "%kiroUpdateChecker.packageFormat.enumDeb%",
+		    "%kiroUpdateChecker.packageFormat.enumTarGz%",
+		    "%kiroUpdateChecker.packageFormat.enumAppImage%",
+		    "%kiroUpdateChecker.packageFormat.enumDmg%",
+		    "%kiroUpdateChecker.packageFormat.enumExe%"
+		  ]
+		}
+	      }
     }
   },
   "scripts": {
