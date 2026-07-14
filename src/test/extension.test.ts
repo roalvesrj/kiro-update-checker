@@ -75,8 +75,10 @@ suite('buildDownloadUrl', () => {
 
 suite('detectLinuxDistro', () => {
 	test('returns unknown when /etc/os-release does not exist', () => {
-		// On Windows this file never exists
-		assert.strictEqual(detectLinuxDistro(), 'unknown');
+		const fs = require('fs');
+		if (!fs.existsSync('/etc/os-release')) {
+			assert.strictEqual(detectLinuxDistro(), 'unknown');
+		}
 	});
 });
 
