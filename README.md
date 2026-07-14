@@ -13,6 +13,7 @@ Automatically checks the official Kiro downloads page for new IDE releases. Inte
 - Supports auto-downloading the installer
 - Manual check command: **Kiro: Check for Updates Now**
 - Dismiss notification for a specific version
+- **Release Notes button**: opens official Kiro changelog in your browser
 - **Cross-platform**: Windows (.exe), macOS (.dmg), Linux (.deb, .tar.gz)
 - **12 languages**: adapts to your VS Code/Kiro interface language
 
@@ -89,6 +90,7 @@ This extension contributes the following settings:
 - Auto-publish to Open VSX via GitHub Actions
 - Linux URL pattern fix (extra `/deb/` or `/tar/` path segment)
 - `checkUrl()`: HEAD request safety check with 403 fallback
+- **Release Notes button**: opens `kiro.dev/changelog/ide/{version}/` in your browser from any notification
 
 ### 0.1.4
 

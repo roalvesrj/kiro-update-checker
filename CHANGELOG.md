@@ -19,6 +19,9 @@
 ### Fixed
 - Linux download URLs: added missing `/deb/` or `/tar/` path segment after version number
 
+### Added
+- Release Notes button on notifications: opens official Kiro changelog page in browser (`kiro.dev/changelog/ide/{version}/`)
+
 ## [0.1.4] - 2026-07-11
 ### Fixed
 - displayName and description reverted to static text (Open VSX does not resolve %key%)

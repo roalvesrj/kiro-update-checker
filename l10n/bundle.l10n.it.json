@@ -14,5 +14,6 @@
 	"Install Now": "Installa Ora",
 	"Open folder": "Apri cartella",
 	"An error occurred while checking for updates. Please try again later.": "Si è verificato un errore durante il controllo degli aggiornamenti. Riprova più tardi.",
-	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker: Download diretto non disponibile per la tua piattaforma ({0}). Visita la pagina dei download."
+	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker: Download diretto non disponibile per la tua piattaforma ({0}). Visita la pagina dei download.",
+	"Release Notes": "Note di Rilascio"
 }

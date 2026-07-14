@@ -304,6 +304,7 @@ async function handleManualDownload(context: vscode.ExtensionContext, currentVer
 		t('🚀 New Kiro version available! {0} -> {1}.', currentVersion, latestVersion),
 		{ modal: false },
 		t('Download Latest'),
+		t('Release Notes'),
 		t('Dismiss')
 	).then(async selection => {
 		if (selection === t('Download Latest')) {
@@ -319,6 +320,9 @@ async function handleManualDownload(context: vscode.ExtensionContext, currentVer
 					log('Failed to open browser.');
 				}
 			}
+		} else if (selection === t('Release Notes')) {
+			log('User requested release notes.');
+			await showReleaseNotes(latestVersion);
 		} else if (selection === t('Dismiss')) {
 			log(`User dismissed notifications for version ${latestVersion}.`);
 			await context.globalState.update(STATE_KEY_DISMISSED_VERSION, latestVersion);
@@ -508,6 +512,7 @@ function showInstallNotification(context: vscode.ExtensionContext, currentVersio
 		{ modal: false },
 		t('Install Now'),
 		t('Open folder'),
+		t('Release Notes'),
 		t('Dismiss')
 	).then(async selection => {
 		if (selection === t('Install Now')) {
@@ -523,6 +528,9 @@ function showInstallNotification(context: vscode.ExtensionContext, currentVersio
 			if (!opened) {
 				log('Failed to open folder.');
 			}
+		} else if (selection === t('Release Notes')) {
+			log('User requested release notes.');
+			await showReleaseNotes(latestVersion);
 		} else if (selection === t('Dismiss')) {
 			log(`User dismissed version ${latestVersion}.`);
 			await context.globalState.update(STATE_KEY_DISMISSED_VERSION, latestVersion);
@@ -691,6 +699,76 @@ function compareVersions(a: string, b: string): number {
 		if (numA < numB) {return -1;}
 	}
 	return 0;
+}
+
+const METADATA_BASE = 'https://prod.download.desktop.kiro.dev/stable';
+
+function metadataUrlForPlatform(info: PlatformInfo | null): string {
+	if (info?.platform === 'darwin') {
+		return `${METADATA_BASE}/metadata-dmg-${info.platform}-${info.arch}-stable.json`;
+	}
+	if (info?.platform === 'linux') {
+		return `${METADATA_BASE}/metadata-${info.platform}-${info.arch}-stable.json`;
+	}
+	return `${METADATA_BASE}/metadata-linux-x64-stable.json`;
+}
+
+async function fetchReleaseNotes(version: string, info: PlatformInfo | null): Promise<string | null> {
+	const url = metadataUrlForPlatform(info);
+	try {
+		const data = await new Promise<string>((resolve, reject) => {
+			const req = https.get(url, { headers: { 'User-Agent': userAgentStr() }, timeout: 10000 }, (res) => {
+				let body = '';
+				res.on('data', (chunk) => body += chunk);
+				res.on('end', () => resolve(body));
+			});
+			req.on('error', reject);
+			req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+		});
+
+		const json = JSON.parse(data);
+		const releases = json.releases;
+		if (!releases || releases.length === 0) { return null; }
+
+		const latest = releases[releases.length - 1]?.updateTo;
+		if (!latest) { return null; }
+
+		const date = latest.pub_date || '';
+		const notes = (latest.notes && !latest.notes.startsWith('Kiro-')) ? latest.notes : '';
+
+		let result = `**Version:** ${latest.version}`;
+		if (date) { result += `\n**Release date:** ${date}`; }
+		if (notes) { result += `\n\n${notes}`; }
+		return result;
+	} catch {
+		return null;
+	}
+}
+
+async function showReleaseNotes(version: string) {
+	const info = detectPlatform();
+	const notes = await fetchReleaseNotes(version, info);
+
+	if (notes) {
+		const selection = await vscode.window.showInformationMessage(
+			notes,
+			{ modal: false },
+			t('Open Downloads Page')
+		);
+		if (selection === t('Open Downloads Page')) {
+			await vscode.env.openExternal(vscode.Uri.parse(DOWNLOADS_PAGE_URL));
+		}
+	} else {
+		const selection = await vscode.window.showInformationMessage(
+			`${t('Release Notes')} (${version})`,
+			{ modal: false },
+			t('Open Downloads Page'),
+			t('Dismiss')
+		);
+		if (selection === t('Open Downloads Page')) {
+			await vscode.env.openExternal(vscode.Uri.parse(DOWNLOADS_PAGE_URL));
+		}
+	}
 }
 
 function buildDownloadUrl(version: string, info: PlatformInfo): string {

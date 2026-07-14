@@ -14,5 +14,6 @@
 	"Install Now": "今すぐインストール",
 	"Open folder": "フォルダーを開く",
 	"An error occurred while checking for updates. Please try again later.": "アップデートの確認中にエラーが発生しました。後でもう一度お試しください。",
-	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker: お使いのプラットフォーム ({0}) では直接ダウンロードを利用できません。ダウンロードページをご覧ください。"
+	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker: お使いのプラットフォーム ({0}) では直接ダウンロードを利用できません。ダウンロードページをご覧ください。",
+	"Release Notes": "リリースノート"
 }
