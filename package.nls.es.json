@@ -5,7 +5,7 @@
 	"kiroUpdateChecker.enableOnStartup.description": "Si debe buscar actualizaciones al iniciar.",
 	"kiroUpdateChecker.autoDownload.description": "Si debe descargar e instalar nuevas versiones automáticamente.",
 	"kiroUpdateChecker.downloadFolder.description": "Carpeta personalizada para descargar actualizaciones. Deje vacío para usar la carpeta de Descargas predeterminada.",
-	"kiroUpdateChecker.packageFormat.description": "Anular el formato del paquete para descargas. Déjelo vacío para detección automática.",
+	"kiroUpdateChecker.packageFormat.description": "Anular el formato del paquete para descargas. Establezca 'auto' para detección automática.",
 	"kiroUpdateChecker.packageFormat.enumAuto": "Automático (recomendado)",
 	"kiroUpdateChecker.packageFormat.enumDeb": ".deb (Debian/Ubuntu)",
 	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Linux Universal)",

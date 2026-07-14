@@ -1,0 +1,18 @@
+{
+	"Could not determine the latest Kiro version. Please try again later.": "Не удалось определить последнюю версию Kiro. Пожалуйста, повторите попытку позже.",
+	"Could not determine the current Kiro version. Please ensure Kiro is installed.": "Не удалось определить текущую версию Kiro. Убедитесь, что Kiro установлен.",
+	"Download Latest": "Загрузить последнюю версию",
+	"Open Downloads Page": "Открыть страницу загрузок",
+	"✅ Kiro is up to date! Installed version: {0}": "✅ Kiro обновлён! Установленная версия: {0}",
+	"🚀 New Kiro version available! {0} -> {1}.": "🚀 Доступна новая версия Kiro! {0} -> {1}.",
+	"⤵️ Kiro Update Checker: Downloading {0}": "⤵️ Kiro Update Checker: Загрузка {0}",
+	"❌ Kiro Update Checker: Failed to download {0}. Try manually.": "❌ Kiro Update Checker: Не удалось загрузить {0}. Попробуйте вручную.",
+	"❌ Kiro Update Checker: Error saving the installer. {0}": "❌ Kiro Update Checker: Ошибка сохранения установщика. {0}",
+	"🚀 New Kiro version ready to install! {0} -> {1}.": "🚀 Новая версия Kiro готова к установке! {0} -> {1}.",
+	"Dismiss": "Закрыть",
+	"Kiro Update Checker: This extension only works on Kiro IDE.": "Kiro Update Checker: Это расширение работает только в Kiro IDE.",
+	"Install Now": "Установить сейчас",
+	"Open folder": "Открыть папку",
+	"An error occurred while checking for updates. Please try again later.": "Произошла ошибка при проверке обновлений. Пожалуйста, повторите попытку позже.",
+	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker: Прямая загрузка недоступна для вашей платформы ({0}). Посетите страницу загрузок."
+}

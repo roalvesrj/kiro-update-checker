@@ -1,0 +1,15 @@
+{
+	"kiro-update-checker.checkNow.title": "Kiro: Проверить обновления сейчас",
+	"kiroUpdateChecker.config.title": "Конфигурация Kiro Update Checker",
+	"kiroUpdateChecker.checkInterval.description": "Интервал в минутах для проверки обновлений. Установите 0 для отключения.",
+	"kiroUpdateChecker.enableOnStartup.description": "Проверять обновления при запуске.",
+	"kiroUpdateChecker.autoDownload.description": "Автоматически загружать и устанавливать новые версии.",
+	"kiroUpdateChecker.downloadFolder.description": "Пользовательская папка для загрузки обновлений. Оставьте пустым для использования папки Загрузки по умолчанию.",
+	"kiroUpdateChecker.packageFormat.description": "Переопределить формат пакета для загрузки. Установите 'auto' для автоматического определения.",
+	"kiroUpdateChecker.packageFormat.enumAuto": "Автоопределение (рекомендуется)",
+	"kiroUpdateChecker.packageFormat.enumDeb": ".deb (Debian/Ubuntu)",
+	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Universal Linux)",
+	"kiroUpdateChecker.packageFormat.enumAppImage": ".AppImage (Universal Linux)",
+	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
+	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)"
+}

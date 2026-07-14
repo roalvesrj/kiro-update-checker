@@ -182,8 +182,8 @@ function detectPlatform(): PlatformInfo | null {
 	}
 	if (plat === 'linux') {
 		const config = vscode.workspace.getConfiguration('kiroUpdateChecker');
-		const customExt = config.get<string>('packageFormat', '');
-		if (customExt) {
+		const customExt = config.get<string>('packageFormat', 'auto');
+		if (customExt && customExt !== 'auto') {
 			return { platform: 'linux', arch: arch === 'arm64' ? 'arm64' : 'x64', ext: customExt };
 		}
 		const distro = detectLinuxDistro();

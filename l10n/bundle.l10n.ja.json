@@ -1,0 +1,18 @@
+{
+	"Could not determine the latest Kiro version. Please try again later.": "最新のKiroバージョンを確認できませんでした。後でもう一度お試しください。",
+	"Could not determine the current Kiro version. Please ensure Kiro is installed.": "現在のKiroバージョンを確認できませんでした。Kiroがインストールされていることを確認してください。",
+	"Download Latest": "最新版をダウンロード",
+	"Open Downloads Page": "ダウンロードページを開く",
+	"✅ Kiro is up to date! Installed version: {0}": "✅ Kiroは最新です！ インストール済みバージョン: {0}",
+	"🚀 New Kiro version available! {0} -> {1}.": "🚀 新しいKiroバージョンが利用可能です！ {0} -> {1}.",
+	"⤵️ Kiro Update Checker: Downloading {0}": "⤵️ Kiro Update Checker: {0} をダウンロード中",
+	"❌ Kiro Update Checker: Failed to download {0}. Try manually.": "❌ Kiro Update Checker: {0} のダウンロードに失敗しました。手動でお試しください。",
+	"❌ Kiro Update Checker: Error saving the installer. {0}": "❌ Kiro Update Checker: インストーラーの保存中にエラーが発生しました。 {0}",
+	"🚀 New Kiro version ready to install! {0} -> {1}.": "🚀 新しいKiroバージョンのインストール準備ができました！ {0} -> {1}.",
+	"Dismiss": "閉じる",
+	"Kiro Update Checker: This extension only works on Kiro IDE.": "Kiro Update Checker: この拡張機能はKiro IDEでのみ動作します。",
+	"Install Now": "今すぐインストール",
+	"Open folder": "フォルダーを開く",
+	"An error occurred while checking for updates. Please try again later.": "アップデートの確認中にエラーが発生しました。後でもう一度お試しください。",
+	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker: お使いのプラットフォーム ({0}) では直接ダウンロードを利用できません。ダウンロードページをご覧ください。"
+}

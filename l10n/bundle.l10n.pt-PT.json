@@ -1,0 +1,18 @@
+{
+	"Could not determine the latest Kiro version. Please try again later.": "Não foi possível determinar a versão mais recente do Kiro. Tente novamente mais tarde.",
+	"Could not determine the current Kiro version. Please ensure Kiro is installed.": "Não foi possível determinar a versão atual do Kiro. Certifique-se de que o Kiro está instalado.",
+	"Download Latest": "Transferir Última Versão",
+	"Open Downloads Page": "Abrir Página de Transferências",
+	"✅ Kiro is up to date! Installed version: {0}": "✅ Kiro está atualizado! Versão instalada: {0}",
+	"🚀 New Kiro version available! {0} -> {1}.": "🚀 Nova versão do Kiro disponível! {0} -> {1}.",
+	"⤵️ Kiro Update Checker: Downloading {0}": "⤵️ Kiro Update Checker: A transferir {0}",
+	"❌ Kiro Update Checker: Failed to download {0}. Try manually.": "❌ Kiro Update Checker: Falha ao transferir {0}. Tente manualmente.",
+	"❌ Kiro Update Checker: Error saving the installer. {0}": "❌ Kiro Update Checker: Erro ao guardar o instalador. {0}",
+	"🚀 New Kiro version ready to install! {0} -> {1}.": "🚀 Nova versão do Kiro pronta para instalar! {0} -> {1}.",
+	"Dismiss": "Dispensar",
+	"Kiro Update Checker: This extension only works on Kiro IDE.": "Kiro Update Checker: Esta extensão funciona apenas no Kiro IDE.",
+	"Install Now": "Instalar Agora",
+	"Open folder": "Abrir pasta",
+	"An error occurred while checking for updates. Please try again later.": "Ocorreu um erro ao verificar atualizações. Tente novamente mais tarde.",
+	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker: Transferência direta não disponível para a sua plataforma ({0}). Visite a página de transferências."
+}

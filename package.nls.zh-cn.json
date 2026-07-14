@@ -1,0 +1,15 @@
+{
+	"kiro-update-checker.checkNow.title": "Kiro: 立即检查更新",
+	"kiroUpdateChecker.config.title": "Kiro Update Checker 配置",
+	"kiroUpdateChecker.checkInterval.description": "检查更新的间隔（分钟）。设置为 0 以禁用自动检查。",
+	"kiroUpdateChecker.enableOnStartup.description": "是否在启动时检查更新。",
+	"kiroUpdateChecker.autoDownload.description": "是否自动下载并安装新版本。",
+	"kiroUpdateChecker.downloadFolder.description": "下载更新的自定义文件夹。留空则使用默认的 Downloads 文件夹。",
+	"kiroUpdateChecker.packageFormat.description": "覆盖下载的包格式。设置为 'auto' 以自动检测。",
+	"kiroUpdateChecker.packageFormat.enumAuto": "自动检测（推荐）",
+	"kiroUpdateChecker.packageFormat.enumDeb": ".deb (Debian/Ubuntu)",
+	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz（通用 Linux）",
+	"kiroUpdateChecker.packageFormat.enumAppImage": ".AppImage（通用 Linux）",
+	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
+	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)"
+}

@@ -1,0 +1,15 @@
+{
+	"kiro-update-checker.checkNow.title": "Kiro : Vérifier les Mises à Jour Maintenant",
+	"kiroUpdateChecker.config.title": "Configuration de Kiro Update Checker",
+	"kiroUpdateChecker.checkInterval.description": "Intervalle en minutes pour vérifier les mises à jour. Mettez 0 pour désactiver.",
+	"kiroUpdateChecker.enableOnStartup.description": "Vérifier les mises à jour au démarrage.",
+	"kiroUpdateChecker.autoDownload.description": "Télécharger et installer automatiquement les nouvelles versions.",
+	"kiroUpdateChecker.downloadFolder.description": "Dossier personnalisé pour les téléchargements. Laissez vide pour utiliser le dossier Téléchargements par défaut.",
+	"kiroUpdateChecker.packageFormat.description": "Forcer le format du paquet pour les téléchargements. Réglez sur 'auto' pour la détection automatique.",
+	"kiroUpdateChecker.packageFormat.enumAuto": "Auto-détection (recommandé)",
+	"kiroUpdateChecker.packageFormat.enumDeb": ".deb (Debian/Ubuntu)",
+	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Linux Universel)",
+	"kiroUpdateChecker.packageFormat.enumAppImage": ".AppImage (Linux Universel)",
+	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
+	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)"
+}

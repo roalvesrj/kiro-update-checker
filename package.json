@@ -55,10 +55,10 @@
 		},
 		"kiroUpdateChecker.packageFormat": {
 		  "type": "string",
-		  "default": "",
+		  "default": "auto",
 		  "description": "%kiroUpdateChecker.packageFormat.description%",
 		  "enum": [
-		    "",
+		    "auto",
 		    "deb",
 		    "tar.gz",
 		    "AppImage",
