@@ -9,7 +9,7 @@ const DOWNLOADS_PAGE_URL = 'https://kiro.dev/downloads/';
 const STATE_KEY_DISMISSED_VERSION = 'kiroUpdateChecker.dismissedVersion';
 
 let outputChannel: vscode.OutputChannel | null = null;
-let extensionVersion = '0.1.0';
+let extensionVersion = '0.2.1';
 let extensionPath = '';
 
 // Translation support — loads bundle.l10n.<lang>.json based on VS Code UI language

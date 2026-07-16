@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.2.1] - 2026-07-16
+### Added
+- Arabic (ar), Turkish (tr), Vietnamese (vi) translations — 15 languages total
+
+### Fixed
+- `detectLinuxDistro` test now correctly skips assertion on Linux runners where `/etc/os-release` exists
+
 ## [0.2.0] - 2026-07-14
 ### Added
 - Cross-platform download support: Windows (.exe), macOS (.dmg), Linux (.deb, .tar.gz)
@@ -7,7 +14,7 @@
 - Platform-aware install command: `start` (Windows), `open` (macOS), `xdg-open` (Linux)
 - `packageFormat` setting: override package type (auto, deb, tar.gz, AppImage, dmg, exe)
 - `checkUrl()`: HEAD request safety check with 403 fallback
-- 15 language translations (en, pt-BR, pt-PT, es, fr, de, it, ja, ko, zh-cn, hi, ru, ar, tr, vi)
+- 12 language translations (en, pt-BR, pt-PT, es, fr, de, it, ja, ko, zh-cn, hi, ru)
 - Auto-publish workflow to Open VSX via GitHub Actions
 - Setting descriptions in 12 languages via `package.nls.*.json`
 

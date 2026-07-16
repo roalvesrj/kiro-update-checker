@@ -84,6 +84,11 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 0.2.1
+
+- Added Arabic (ar), Turkish (tr), Vietnamese (vi) translations
+- Fixed `detectLinuxDistro` test to pass on Linux CI runners
+
 ### 0.2.0
 
 - Cross-platform download support: Windows (.exe), macOS (.dmg), Linux (.deb, .tar.gz)
