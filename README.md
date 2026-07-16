@@ -6,6 +6,8 @@
 
 Automatically checks the official Kiro downloads page for new IDE releases. Intended for users running Kiro in Administrator mode, where the built-in update feature may not be available.
 
+> **Disclaimer:** This is a community extension, not officially maintained by the Kiro team.
+
 ## Features
 
 - Checks for new Kiro IDE releases on startup and at configurable intervals
