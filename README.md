@@ -15,7 +15,7 @@ Automatically checks the official Kiro downloads page for new IDE releases. Inte
 - Dismiss notification for a specific version
 - **Release Notes button**: opens official Kiro changelog in your browser
 - **Cross-platform**: Windows (.exe), macOS (.dmg), Linux (.deb, .tar.gz)
-- **12 languages**: adapts to your VS Code/Kiro interface language
+- **15 languages**: adapts to your VS Code/Kiro interface language
 
 ## Screenshots
 
@@ -69,6 +69,9 @@ This extension contributes the following settings:
 | 简体中文 | `zh-cn` |
 | हिन्दी | `hi` |
 | Русский | `ru` |
+| العربية | `ar` |
+| Türkçe | `tr` |
+| Tiếng Việt | `vi` |
 
 ## Requirements
 
@@ -86,7 +89,7 @@ This extension contributes the following settings:
 - Cross-platform download support: Windows (.exe), macOS (.dmg), Linux (.deb, .tar.gz)
 - Platform auto-detection + correct install command per OS
 - `packageFormat` setting: choose package type or auto-detect
-- 12 language translations (en, pt-BR, pt-PT, es, fr, de, it, ja, ko, zh-cn, hi, ru)
+- 15 language translations (en, pt-BR, pt-PT, es, fr, de, it, ja, ko, zh-cn, hi, ru, ar, tr, vi)
 - Auto-publish to Open VSX via GitHub Actions
 - Linux URL pattern fix (extra `/deb/` or `/tar/` path segment)
 - `checkUrl()`: HEAD request safety check with 403 fallback

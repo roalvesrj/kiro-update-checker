@@ -1,0 +1,15 @@
+{
+	"kiro-update-checker.checkNow.title": "Kiro: التحقق من التحديثات الآن",
+	"kiroUpdateChecker.config.title": "إعدادات Kiro Update Checker",
+	"kiroUpdateChecker.checkInterval.description": "الفاصل الزمني بالدقائق للتحقق من التحديثات. اضبط 0 لتعطيل التحقق التلقائي.",
+	"kiroUpdateChecker.enableOnStartup.description": "التحقق من التحديثات عند بدء التشغيل.",
+	"kiroUpdateChecker.autoDownload.description": "تنزيل وتثبيت الإصدارات الجديدة تلقائياً.",
+	"kiroUpdateChecker.downloadFolder.description": "مجلد مخصص لتنزيل التحديثات. اتركه فارغاً لاستخدام مجلد التنزيلات الافتراضي.",
+	"kiroUpdateChecker.packageFormat.description": "تجاوز تنسيق الحزمة للتنزيلات. اضبط 'auto' للكشف التلقائي.",
+	"kiroUpdateChecker.packageFormat.enumAuto": "كشف تلقائي (موصى به)",
+	"kiroUpdateChecker.packageFormat.enumDeb": ".deb (Debian/Ubuntu)",
+	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Linux Universal)",
+	"kiroUpdateChecker.packageFormat.enumAppImage": ".AppImage (Linux Universal)",
+	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
+	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)"
+}

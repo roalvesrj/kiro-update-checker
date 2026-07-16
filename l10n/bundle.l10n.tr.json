@@ -1,0 +1,19 @@
+{
+	"Could not determine the latest Kiro version. Please try again later.": "En son Kiro sürümü belirlenemedi. Lütfen daha sonra tekrar deneyin.",
+	"Could not determine the current Kiro version. Please ensure Kiro is installed.": "Mevcut Kiro sürümü belirlenemedi. Lütfen Kiro'nun kurulu olduğundan emin olun.",
+	"Download Latest": "Son Sürümü İndir",
+	"Open Downloads Page": "İndirme Sayfasını Aç",
+	"✅ Kiro is up to date! Installed version: {0}": "✅ Kiro güncel! Kurulu sürüm: {0}",
+	"🚀 New Kiro version available! {0} -> {1}.": "🚀 Yeni Kiro sürümü mevcut! {0} -> {1}.",
+	"⤵️ Kiro Update Checker: Downloading {0}": "⤵️ Kiro Update Checker: {0} indiriliyor",
+	"❌ Kiro Update Checker: Failed to download {0}. Try manually.": "❌ Kiro Update Checker: {0} indirilemedi. Manuel olarak deneyin.",
+	"❌ Kiro Update Checker: Error saving the installer. {0}": "❌ Kiro Update Checker: Yükleyici kaydedilirken hata oluştu. {0}",
+	"🚀 New Kiro version ready to install! {0} -> {1}.": "🚀 Yeni Kiro sürümü kuruluma hazır! {0} -> {1}.",
+	"Dismiss": "Kapat",
+	"Kiro Update Checker: This extension only works on Kiro IDE.": "Kiro Update Checker: Bu eklenti yalnızca Kiro IDE'de çalışır.",
+	"Install Now": "Şimdi Kur",
+	"Open folder": "Klasörü aç",
+	"An error occurred while checking for updates. Please try again later.": "Güncellemeler kontrol edilirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.",
+	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker: Platformunuz ({0}) için doğrudan indirme mevcut değil. İndirme sayfasını ziyaret edin.",
+	"Release Notes": "Sürüm Notları"
+}

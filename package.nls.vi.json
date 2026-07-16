@@ -1,0 +1,15 @@
+{
+	"kiro-update-checker.checkNow.title": "Kiro: Kiểm Tra Cập Nhật Ngay",
+	"kiroUpdateChecker.config.title": "Cấu Hình Kiro Update Checker",
+	"kiroUpdateChecker.checkInterval.description": "Khoảng thời gian (phút) để kiểm tra cập nhật. Đặt 0 để tắt kiểm tra tự động.",
+	"kiroUpdateChecker.enableOnStartup.description": "Kiểm tra cập nhật khi khởi động.",
+	"kiroUpdateChecker.autoDownload.description": "Tự động tải xuống và cài đặt phiên bản mới.",
+	"kiroUpdateChecker.downloadFolder.description": "Thư mục tùy chỉnh để tải xuống. Để trống để sử dụng thư mục Tải xuống mặc định.",
+	"kiroUpdateChecker.packageFormat.description": "Ghi đè định dạng gói cho tải xuống. Đặt 'auto' để tự động phát hiện.",
+	"kiroUpdateChecker.packageFormat.enumAuto": "Tự động phát hiện (khuyến nghị)",
+	"kiroUpdateChecker.packageFormat.enumDeb": ".deb (Debian/Ubuntu)",
+	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Universal Linux)",
+	"kiroUpdateChecker.packageFormat.enumAppImage": ".AppImage (Universal Linux)",
+	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
+	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)"
+}

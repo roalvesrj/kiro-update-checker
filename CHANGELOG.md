@@ -7,7 +7,7 @@
 - Platform-aware install command: `start` (Windows), `open` (macOS), `xdg-open` (Linux)
 - `packageFormat` setting: override package type (auto, deb, tar.gz, AppImage, dmg, exe)
 - `checkUrl()`: HEAD request safety check with 403 fallback
-- 12 language translations (en, pt-BR, pt-PT, es, fr, de, it, ja, ko, zh-cn, hi, ru)
+- 15 language translations (en, pt-BR, pt-PT, es, fr, de, it, ja, ko, zh-cn, hi, ru, ar, tr, vi)
 - Auto-publish workflow to Open VSX via GitHub Actions
 - Setting descriptions in 12 languages via `package.nls.*.json`
 

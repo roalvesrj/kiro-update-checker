@@ -1,0 +1,19 @@
+{
+	"Could not determine the latest Kiro version. Please try again later.": "تعذر تحديد أحدث إصدار من Kiro. يرجى المحاولة لاحقاً.",
+	"Could not determine the current Kiro version. Please ensure Kiro is installed.": "تعذر تحديد الإصدار الحالي من Kiro. يرجى التأكد من تثبيت Kiro.",
+	"Download Latest": "تنزيل أحدث إصدار",
+	"Open Downloads Page": "فتح صفحة التنزيلات",
+	"✅ Kiro is up to date! Installed version: {0}": "✅ Kiro محدث! الإصدار المثبت: {0}",
+	"🚀 New Kiro version available! {0} -> {1}.": "🚀 إصدار جديد من Kiro متاح! {0} -> {1}.",
+	"⤵️ Kiro Update Checker: Downloading {0}": "⤵️ Kiro Update Checker: جاري تنزيل {0}",
+	"❌ Kiro Update Checker: Failed to download {0}. Try manually.": "❌ Kiro Update Checker: فشل تنزيل {0}. حاول يدوياً.",
+	"❌ Kiro Update Checker: Error saving the installer. {0}": "❌ Kiro Update Checker: خطأ في حفظ المثبت. {0}",
+	"🚀 New Kiro version ready to install! {0} -> {1}.": "🚀 إصدار Kiro الجديد جاهز للتثبيت! {0} -> {1}.",
+	"Dismiss": "تجاهل",
+	"Kiro Update Checker: This extension only works on Kiro IDE.": "Kiro Update Checker: هذا الامتداد يعمل فقط على Kiro IDE.",
+	"Install Now": "تثبيت الآن",
+	"Open folder": "فتح المجلد",
+	"An error occurred while checking for updates. Please try again later.": "حدث خطأ أثناء التحقق من التحديثات. يرجى المحاولة لاحقاً.",
+	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker: التنزيل المباشر غير متاح لمنصتك ({0}). زر صفحة التنزيلات.",
+	"Release Notes": "ملاحظات الإصدار"
+}

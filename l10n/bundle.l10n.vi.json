@@ -1,0 +1,19 @@
+{
+	"Could not determine the latest Kiro version. Please try again later.": "Không thể xác định phiên bản Kiro mới nhất. Vui lòng thử lại sau.",
+	"Could not determine the current Kiro version. Please ensure Kiro is installed.": "Không thể xác định phiên bản Kiro hiện tại. Vui lòng đảm bảo Kiro đã được cài đặt.",
+	"Download Latest": "Tải Xuống Phiên Bản Mới Nhất",
+	"Open Downloads Page": "Mở Trang Tải Xuống",
+	"✅ Kiro is up to date! Installed version: {0}": "✅ Kiro đã là phiên bản mới nhất! Phiên bản đã cài: {0}",
+	"🚀 New Kiro version available! {0} -> {1}.": "🚀 Phiên bản Kiro mới có sẵn! {0} -> {1}.",
+	"⤵️ Kiro Update Checker: Downloading {0}": "⤵️ Kiro Update Checker: Đang tải xuống {0}",
+	"❌ Kiro Update Checker: Failed to download {0}. Try manually.": "❌ Kiro Update Checker: Tải xuống {0} thất bại. Hãy thử thủ công.",
+	"❌ Kiro Update Checker: Error saving the installer. {0}": "❌ Kiro Update Checker: Lỗi khi lưu trình cài đặt. {0}",
+	"🚀 New Kiro version ready to install! {0} -> {1}.": "🚀 Phiên bản Kiro mới đã sẵn sàng để cài đặt! {0} -> {1}.",
+	"Dismiss": "Bỏ qua",
+	"Kiro Update Checker: This extension only works on Kiro IDE.": "Kiro Update Checker: Tiện ích mở rộng này chỉ hoạt động trên Kiro IDE.",
+	"Install Now": "Cài Đặt Ngay",
+	"Open folder": "Mở thư mục",
+	"An error occurred while checking for updates. Please try again later.": "Đã xảy ra lỗi khi kiểm tra cập nhật. Vui lòng thử lại sau.",
+	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker: Tải xuống trực tiếp không khả dụng cho nền tảng của bạn ({0}). Truy cập trang tải xuống.",
+	"Release Notes": "Ghi Chú Phát Hành"
+}

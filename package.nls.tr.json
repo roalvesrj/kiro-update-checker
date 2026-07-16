@@ -1,0 +1,15 @@
+{
+	"kiro-update-checker.checkNow.title": "Kiro: Şimdi Güncellemeleri Kontrol Et",
+	"kiroUpdateChecker.config.title": "Kiro Update Checker Yapılandırması",
+	"kiroUpdateChecker.checkInterval.description": "Güncellemeleri kontrol etme aralığı (dakika). Otomatik kontrolü devre dışı bırakmak için 0 ayarlayın.",
+	"kiroUpdateChecker.enableOnStartup.description": "Başlangıçta güncellemeleri kontrol et.",
+	"kiroUpdateChecker.autoDownload.description": "Yeni sürümleri otomatik olarak indir ve kur.",
+	"kiroUpdateChecker.downloadFolder.description": "Güncellemeler için özel klasör. Varsayılan İndirilenler klasörünü kullanmak için boş bırakın.",
+	"kiroUpdateChecker.packageFormat.description": "İndirmeler için paket biçimini geçersiz kıl. Otomatik algılama için 'auto' ayarlayın.",
+	"kiroUpdateChecker.packageFormat.enumAuto": "Otomatik algılama (önerilir)",
+	"kiroUpdateChecker.packageFormat.enumDeb": ".deb (Debian/Ubuntu)",
+	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Universal Linux)",
+	"kiroUpdateChecker.packageFormat.enumAppImage": ".AppImage (Universal Linux)",
+	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
+	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)"
+}
