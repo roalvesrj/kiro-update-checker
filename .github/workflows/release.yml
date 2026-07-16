@@ -53,7 +53,17 @@ jobs:
             fs.writeFileSync('RELEASE_BODY.md', body);
           "
 
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git ls-remote --exit-code --tags origin v${{ steps.version.outputs.version }} 2>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create Release
+        if: steps.check_tag.outputs.exists != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         uses: softprops/action-gh-release@v2
