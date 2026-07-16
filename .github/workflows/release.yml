@@ -55,11 +55,13 @@ jobs:
 
       - name: Check if tag exists
         id: check_tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if git ls-remote --exit-code --tags origin v${{ steps.version.outputs.version }} 2>/dev/null; then
-            echo "exists=true" >> $GITHUB_OUTPUT
+          if gh api "/repos/${{ github.repository }}/git/ref/tags/v${{ steps.version.outputs.version }}" --jq '.ref' &>/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create Release
