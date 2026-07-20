@@ -9,7 +9,7 @@ const DOWNLOADS_PAGE_URL = 'https://kiro.dev/downloads/';
 const STATE_KEY_DISMISSED_VERSION = 'kiroUpdateChecker.dismissedVersion';
 
 let outputChannel: vscode.OutputChannel | null = null;
-let extensionVersion = '0.2.1';
+let extensionVersion = '0.2.2';
 let extensionPath = '';
 
 // Translation support — loads bundle.l10n.<lang>.json based on VS Code UI language
@@ -222,9 +222,9 @@ function getDownloadFolder(): string {
 async function checkForUpdates(context: vscode.ExtensionContext, manualCheck: boolean = false) {
 	try {
 		log('Fetching the Kiro downloads page...');
-		const latestVersion = await fetchLatestVersion();
+		const versionInfo = await fetchLatestVersion();
 
-		if (!latestVersion) {
+		if (!versionInfo) {
 			log('Could not determine the latest version.');
 
 			if (manualCheck) {
@@ -232,6 +232,8 @@ async function checkForUpdates(context: vscode.ExtensionContext, manualCheck: bo
 			}
 			return;
 		}
+
+		const { version: latestVersion, changelogUrl: latestChangelogUrl } = versionInfo;
 
 		log(`Latest Kiro version found: ${latestVersion}`);
 
@@ -282,9 +284,9 @@ async function checkForUpdates(context: vscode.ExtensionContext, manualCheck: bo
 
 			if (autoDownload) {
 				log('Auto-download is enabled. Downloading the latest version...');
-				await handleAutoDownload(context, currentVersion, latestVersion, manualCheck);
+				await handleAutoDownload(context, currentVersion, latestVersion, manualCheck, latestChangelogUrl);
 			} else {
-				await handleManualDownload(context, currentVersion, latestVersion);
+				await handleManualDownload(context, currentVersion, latestVersion, latestChangelogUrl);
 			}
 		} else if (manualCheck) {
 			vscode.window.showInformationMessage(t('✅ Kiro is up to date! Installed version: {0}', latestVersion));
@@ -298,7 +300,7 @@ async function checkForUpdates(context: vscode.ExtensionContext, manualCheck: bo
 	}
 }
 
-async function handleManualDownload(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string) {
+async function handleManualDownload(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, changelogUrl: string) {
 	log('Mode: Manual download (open browser).');
 	vscode.window.showWarningMessage(
 		t('🚀 New Kiro version available! {0} -> {1}.', currentVersion, latestVersion),
@@ -322,7 +324,7 @@ async function handleManualDownload(context: vscode.ExtensionContext, currentVer
 			}
 		} else if (selection === t('Release Notes')) {
 			log('Opening changelog for version ' + latestVersion);
-			await openReleaseNotes(latestVersion);
+			await vscode.env.openExternal(vscode.Uri.parse(changelogUrl));
 		} else if (selection === t('Dismiss')) {
 			log(`User dismissed notifications for version ${latestVersion}.`);
 			await context.globalState.update(STATE_KEY_DISMISSED_VERSION, latestVersion);
@@ -345,12 +347,12 @@ async function checkUrl(url: string): Promise<number | null> {
 	});
 }
 
-async function handleAutoDownload(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, manualCheck: boolean) {
+async function handleAutoDownload(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, manualCheck: boolean, changelogUrl: string) {
 	log('Mode: Auto-download and install.');
 	const info = detectPlatform();
 	if (!info) {
 		log('Unsupported platform for auto-download. Falling back to manual download.');
-		handleManualDownload(context, currentVersion, latestVersion);
+		handleManualDownload(context, currentVersion, latestVersion, changelogUrl);
 		return;
 	}
 
@@ -376,7 +378,7 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 
 	if (fs.existsSync(filePath)) {
 		log(`Installer already exists at ${filePath}.`);
-		showInstallNotification(context, currentVersion, latestVersion, filePath);
+		showInstallNotification(context, currentVersion, latestVersion, filePath, changelogUrl);
 		return;
 	}
 
@@ -452,7 +454,7 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 						fileStream.on('finish', () => {
 							completed = true;
 							log(`Download completed: ${filePath} (${formatBytes(downloadedSize)})`);
-							showInstallNotification(context, currentVersion, latestVersion, filePath);
+							showInstallNotification(context, currentVersion, latestVersion, filePath, changelogUrl);
 							resolve();
 						});
 
@@ -491,7 +493,7 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 	);
 }
 
-function showInstallNotification(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, filePath: string) {
+function showInstallNotification(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, filePath: string, changelogUrl: string) {
 	const plat = process.platform;
 	let shellPath: string | undefined;
 	let openCommand: string;
@@ -530,7 +532,7 @@ function showInstallNotification(context: vscode.ExtensionContext, currentVersio
 			}
 		} else if (selection === t('Release Notes')) {
 			log('Opening changelog for version ' + latestVersion);
-			await openReleaseNotes(latestVersion);
+			await vscode.env.openExternal(vscode.Uri.parse(changelogUrl));
 		} else if (selection === t('Dismiss')) {
 			log(`User dismissed version ${latestVersion}.`);
 			await context.globalState.update(STATE_KEY_DISMISSED_VERSION, latestVersion);
@@ -549,7 +551,12 @@ function formatBytes(bytes: number): string {
 	return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-function fetchLatestVersion(): Promise<string | null> {
+interface VersionInfo {
+	version: string;
+	changelogUrl: string;
+}
+
+function fetchLatestVersion(): Promise<VersionInfo | null> {
 	return new Promise((resolve) => {
 		const followRedirect = (url: string, depth: number = 0) => {
 			if (depth > 5) {
@@ -565,7 +572,6 @@ function fetchLatestVersion(): Promise<string | null> {
 					log(`Redirected to ${response.headers.location}`);
 					response.destroy();
 
-					// Resolve relative redirect URLs against the base URL
 					const location = response.headers.location;
 					const redirectUrl = location.startsWith('http') 
 						? location 
@@ -591,7 +597,7 @@ function fetchLatestVersion(): Promise<string | null> {
 	});
 }
 
-function handleResponse(response: IncomingMessage, resolve: (value: string | null) => void) {
+function handleResponse(response: IncomingMessage, resolve: (value: VersionInfo | null) => void) {
 	let html = '';
 	response.on('data', (chunk: Buffer) => {
 		html += chunk.toString();
@@ -602,17 +608,40 @@ function handleResponse(response: IncomingMessage, resolve: (value: string | nul
 
 		if (version) {
 			log(`Extracted latest version: ${version}`);
+			const changelogUrl = parseChangelogUrlFromHTML(html, version);
+
+			if (changelogUrl) {
+				log(`Extracted changelog URL: ${changelogUrl}`);
+			} else {
+				log('Could not extract changelog URL from HTML, using generic fallback.');
+			}
+
+			resolve({ version, changelogUrl: changelogUrl || 'https://kiro.dev/changelog/' });
 		} else {
 			log('Could not extract version from HTML.');
 			const snippet = html.substring(0, 500);
 			log(`HTML snippet for debugging: ${snippet}`);
+			resolve(null);
 		}
-		resolve(version);
 	});
 	response.on('error', (err) => {
 		log(`Error reading response: ${err.message}`);
 		resolve(null);
 	});
+}
+
+function parseChangelogUrlFromHTML(html: string, version: string): string | null {
+	// Extract the actual changelog URL from the rendered anchor tag
+	// e.g. <a href="/changelog/ide/1-0/#patch-1-0-165">Release notes</a>
+	const anchorMatch = html.match(/href="(\/[^"]*changelog[^"]+)"/);
+	if (anchorMatch) {
+		const fullUrl = `https://kiro.dev${anchorMatch[1]}`;
+		log(`Extracted changelog URL from anchor: ${fullUrl}`);
+		return fullUrl;
+	}
+
+	log('Could not extract changelog URL from HTML');
+	return null;
 }
 
 function parseVersionFromHTML(html: string): string | null {
@@ -699,14 +728,6 @@ function compareVersions(a: string, b: string): number {
 		if (numA < numB) {return -1;}
 	}
 	return 0;
-}
-
-function changelogUrl(version: string): string {
-	return `https://kiro.dev/changelog/ide/${version.replace(/\./g, '-')}/`;
-}
-
-async function openReleaseNotes(version: string) {
-	await vscode.env.openExternal(vscode.Uri.parse(changelogUrl(version)));
 }
 
 function buildDownloadUrl(version: string, info: PlatformInfo): string {

@@ -1,5 +1,14 @@
 # Change Log
 
+## [0.2.2] - 2026-07-16
+### Changed
+- Release Notes now uses the actual changelog URL extracted from the Kiro downloads page (`changelogSlug`) instead of constructing it from the version number
+
+### Internal
+- `fetchLatestVersion()` now returns `{ version, changelogUrl }` object
+- Added `parseChangelogUrlFromHTML()` for changelog URL extraction
+- Removed `changelogUrl()` and `openReleaseNotes()` (replaced by direct URL usage)
+
 ## [0.2.1] - 2026-07-16
 ### Added
 - Arabic (ar), Turkish (tr), Vietnamese (vi) translations — 15 languages total
