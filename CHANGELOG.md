@@ -1,5 +1,28 @@
 # Change Log
 
+## [0.3.0] - 2026-08-12
+### Security
+- **Fixed** command injection via shell: installer now opens via `TerminalShellIntegration.executeCommand()` with separated executable/args (auto-escaped), falling back to `openExternal()` when shell integration is unavailable
+- **Fixed** unsafe redirects: downloads and page fetches now only follow HTTPS redirects to `kiro.dev` hosts (allowlist in `resolveSafeUrl()`)
+- **Fixed** untrusted download reuse: existing installer files are only reused when their size matches the server `Content-Length`; stale/tampered files are deleted and re-downloaded
+- **Fixed** partial downloads presented as complete: downloads go to a `.part` file, size is verified on finish, then atomically renamed
+- **Fixed** unhandled response stream errors that could leave the download UI stuck (potential deadlock)
+- **Fixed** unbounded memory: downloads page HTML is capped at 5 MB
+- **Fixed** symlink following on download target (exclusive `wx` flag)
+- **Fixed** HEAD/GET races: both requests now validate the URL against the same allowlist
+
+### Changed
+- Minimum VS Code/Kiro engine raised from `1.75.0` to **`1.93.0`** (required by the `TerminalShellIntegration` API)
+- Localization migrated to the official `vscode.l10n` API (`l10n` contribution point); custom loader removed
+- `checkUrl()` now returns `{ status, size }` and validates the URL before requesting
+
+### Internal
+- Removed hardcoded extension version (read from `package.json` at activation)
+- `deactivate()` now disposes the output channel
+- Added `resolveSafeUrl()` / `validateDownloadUrl()` URL allowlist helpers
+- Added `launchInstaller()` for safe cross-platform installer launch
+- `tsconfig.json` declares `moduleResolution: node10` + `ignoreDeprecations: 6.0`
+
 ## [0.2.2] - 2026-07-16
 ### Changed
 - Release Notes now uses the actual changelog URL extracted from the Kiro downloads page (`changelogSlug`) instead of constructing it from the version number

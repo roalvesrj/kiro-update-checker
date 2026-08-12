@@ -77,14 +77,30 @@ This extension contributes the following settings:
 
 ## Requirements
 
-- Kiro IDE (Visual Studio Code fork)
+- Kiro IDE (Visual Studio Code fork) based on VS Code **1.93.0 or newer**
 - Windows, macOS, or Linux
+
+> **Note:** version 0.3.0+ requires a Kiro build based on VS Code ≥ 1.93 (for the `TerminalShellIntegration` API). Users on older Kiro builds will remain on 0.2.2.
 
 ## Known Issues
 
 - Version detection relies on parsing the Kiro downloads page HTML
 
 ## Release Notes
+
+### 0.3.0
+
+- **Security hardening:** fixed command injection via installer launch (now uses `TerminalShellIntegration` with escaped args)
+- **Security hardening:** downloads only follow HTTPS redirects to `kiro.dev` hosts; untrusted/reused files are verified by size and re-downloaded when stale
+- **Security hardening:** partial downloads no longer presented as complete (`.part` + size check + atomic rename)
+- **Security hardening:** download UI no longer sticks on network errors (stream error handlers added)
+- **Security hardening:** downloads page HTML capped at 5 MB; symlink attacks on the download target blocked
+- **Breaking change:** minimum VS Code/Kiro engine raised to 1.93.0
+- Localization migrated to the official `vscode.l10n` API
+
+### 0.2.2
+
+- **Release Notes button** now opens the actual changelog URL extracted from the Kiro downloads page instead of a version-constructed link
 
 ### 0.2.1
 
@@ -96,7 +112,7 @@ This extension contributes the following settings:
 - Cross-platform download support: Windows (.exe), macOS (.dmg), Linux (.deb, .tar.gz)
 - Platform auto-detection + correct install command per OS
 - `packageFormat` setting: choose package type or auto-detect
-- 15 language translations (en, pt-BR, pt-PT, es, fr, de, it, ja, ko, zh-cn, hi, ru, ar, tr, vi)
+- 12 language translations (en, pt-BR, pt-PT, es, fr, de, it, ja, ko, zh-cn, hi, ru)
 - Auto-publish to Open VSX via GitHub Actions
 - Linux URL pattern fix (extra `/deb/` or `/tar/` path segment)
 - `checkUrl()`: HEAD request safety check with 403 fallback

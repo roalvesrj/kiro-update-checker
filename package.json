@@ -2,7 +2,7 @@
   "name": "kiro-update-checker",
   "displayName": "Kiro Update Checker",
   "description": "Automatically checks the official Kiro downloads page for new IDE releases. Intended for users running Kiro in Administrator mode, where the built-in update feature may not be available.",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "icon": "images/KUC-logo.png",
   "publisher": "roalvesrj",
   "repository": {
@@ -14,7 +14,7 @@
     "email": "romulo@cabiros.com.br"
   },
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.93.0"
   },
   "categories": [
     "Other"
@@ -24,6 +24,7 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "l10n": "./l10n",
     "commands": [
       {
         "command": "kiro-update-checker.checkNow",
@@ -48,33 +49,33 @@
           "default": false,
           "description": "%kiroUpdateChecker.autoDownload.description%"
         },
-		"kiroUpdateChecker.downloadFolder": {
-		  "type": "string",
-		  "default": "",
-		  "description": "%kiroUpdateChecker.downloadFolder.description%"
-		},
-		"kiroUpdateChecker.packageFormat": {
-		  "type": "string",
-		  "default": "auto",
-		  "description": "%kiroUpdateChecker.packageFormat.description%",
-		  "enum": [
-		    "auto",
-		    "deb",
-		    "tar.gz",
-		    "AppImage",
-		    "dmg",
-		    "exe"
-		  ],
-		  "enumDescriptions": [
-		    "%kiroUpdateChecker.packageFormat.enumAuto%",
-		    "%kiroUpdateChecker.packageFormat.enumDeb%",
-		    "%kiroUpdateChecker.packageFormat.enumTarGz%",
-		    "%kiroUpdateChecker.packageFormat.enumAppImage%",
-		    "%kiroUpdateChecker.packageFormat.enumDmg%",
-		    "%kiroUpdateChecker.packageFormat.enumExe%"
-		  ]
-		}
-	      }
+        "kiroUpdateChecker.downloadFolder": {
+          "type": "string",
+          "default": "",
+          "description": "%kiroUpdateChecker.downloadFolder.description%"
+        },
+        "kiroUpdateChecker.packageFormat": {
+          "type": "string",
+          "default": "auto",
+          "description": "%kiroUpdateChecker.packageFormat.description%",
+          "enum": [
+            "auto",
+            "deb",
+            "tar.gz",
+            "AppImage",
+            "dmg",
+            "exe"
+          ],
+          "enumDescriptions": [
+            "%kiroUpdateChecker.packageFormat.enumAuto%",
+            "%kiroUpdateChecker.packageFormat.enumDeb%",
+            "%kiroUpdateChecker.packageFormat.enumTarGz%",
+            "%kiroUpdateChecker.packageFormat.enumAppImage%",
+            "%kiroUpdateChecker.packageFormat.enumDmg%",
+            "%kiroUpdateChecker.packageFormat.enumExe%"
+          ]
+        }
+      }
     }
   },
   "scripts": {
@@ -88,16 +89,15 @@
     "publish": "vsce publish"
   },
   "devDependencies": {
-    "@types/vscode": "~1.75.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",
-    "typescript-eslint": "^8.61.1",
-    "eslint": "^10.5.0",
-    "typescript": "^6.0.3",
+    "@types/vscode": "~1.93.0",
     "@vscode/test-cli": "^0.0.15",
-    "@vscode/test-electron": "^3.0.0"
+    "@vscode/test-electron": "^3.1.0",
+    "eslint": "^10.8.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.67.0"
   },
-  "dependencies": {},
   "overrides": {
     "diff": "^8.0.4",
     "serialize-javascript": "^7.0.6"

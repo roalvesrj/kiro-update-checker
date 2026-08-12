@@ -7,46 +7,36 @@ import { IncomingMessage } from 'http';
 
 const DOWNLOADS_PAGE_URL = 'https://kiro.dev/downloads/';
 const STATE_KEY_DISMISSED_VERSION = 'kiroUpdateChecker.dismissedVersion';
+const MAX_PAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
 let outputChannel: vscode.OutputChannel | null = null;
-let extensionVersion = '0.2.2';
-let extensionPath = '';
-
-// Translation support — loads bundle.l10n.<lang>.json based on VS Code UI language
-let _translations: Record<string, string> = {};
-
-function t(message: string, ...args: (string | number)[]): string {
-	let translated = _translations[message] || message;
-	for (let i = 0; i < args.length; i++) {
-		translated = translated.replace(`{${i}}`, String(args[i]));
-	}
-	return translated;
-}
-
-function loadTranslations(ctx: vscode.ExtensionContext) {
-	extensionPath = ctx.extensionPath;
-	const lang = vscode.env.language;
-	const bundlePath = path.join(extensionPath, 'l10n', `bundle.l10n.${lang}.json`);
-	const fallbackPath = path.join(extensionPath, 'l10n', 'bundle.l10n.json');
-
-	try {
-		if (fs.existsSync(bundlePath)) {
-			_translations = JSON.parse(fs.readFileSync(bundlePath, 'utf8'));
-			log(`Loaded translations for "${lang}" (${Object.keys(_translations).length} strings)`);
-			return;
-		}
-	} catch {}
-
-	// Fallback to English
-	try {
-		if (fs.existsSync(fallbackPath)) {
-			_translations = JSON.parse(fs.readFileSync(fallbackPath, 'utf8'));
-		}
-	} catch {}
-}
+let extensionVersion = '';
 
 function userAgentStr(): string {
 	return `KiroUpdateChecker/${extensionVersion}`;
+}
+
+function isAllowedHost(hostname: string): boolean {
+	const h = hostname.toLowerCase();
+	return h === 'kiro.dev' || h.endsWith('.kiro.dev');
+}
+
+function resolveSafeUrl(location: string, baseUrl: string): string | null {
+	let resolved: URL;
+	try {
+		resolved = new URL(location, baseUrl);
+	} catch {
+		return null;
+	}
+	if (resolved.protocol !== 'https:' || !isAllowedHost(resolved.hostname)) {
+		log(`Blocked unsafe URL: ${resolved.protocol}//${resolved.hostname}`);
+		return null;
+	}
+	return resolved.toString();
+}
+
+function validateDownloadUrl(url: string): string | null {
+	return resolveSafeUrl(url, url);
 }
 
 function isKiro(): boolean {
@@ -97,15 +87,13 @@ export function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel('Kiro Update Checker');
 	context.subscriptions.push(outputChannel);
 
-	loadTranslations(context);
-
 	log('Kiro Update Checker activated.');
 
 	if (!isKiro()) {
 		log('Not running on Kiro IDE. Extension will not be active.');
 		log(`Detected appName: "${vscode.env.appName}"`);
 		vscode.window.showInformationMessage(
-			t('Kiro Update Checker: This extension only works on Kiro IDE.'),
+			vscode.l10n.t('Kiro Update Checker: This extension only works on Kiro IDE.'),
 			{ modal: false }
 		);
 		return;
@@ -228,7 +216,7 @@ async function checkForUpdates(context: vscode.ExtensionContext, manualCheck: bo
 			log('Could not determine the latest version.');
 
 			if (manualCheck) {
-				vscode.window.showInformationMessage(t('Could not determine the latest Kiro version. Please try again later.'));
+				vscode.window.showInformationMessage(vscode.l10n.t('Could not determine the latest Kiro version. Please try again later.'));
 			}
 			return;
 		}
@@ -245,11 +233,11 @@ async function checkForUpdates(context: vscode.ExtensionContext, manualCheck: bo
 
 			if (manualCheck) {
 				const selection = await vscode.window.showWarningMessage(
-					t('Could not determine the current Kiro version. Please ensure Kiro is installed.'),
-					t('Download Latest'),
-					t('Open Downloads Page')
+					vscode.l10n.t('Could not determine the current Kiro version. Please ensure Kiro is installed.'),
+					vscode.l10n.t('Download Latest'),
+					vscode.l10n.t('Open Downloads Page')
 				);
-				if (selection === t('Download Latest')) {
+				if (selection === vscode.l10n.t('Download Latest')) {
 					const info = detectPlatform();
 					if (!info) {
 						log('Unsupported platform for direct download. Opening browser page.');
@@ -259,7 +247,7 @@ async function checkForUpdates(context: vscode.ExtensionContext, manualCheck: bo
 						log(`Opening browser to download URL: ${downloadUrl}`);
 						await vscode.env.openExternal(vscode.Uri.parse(downloadUrl));
 					}
-				} else if (selection === t('Open Downloads Page')) {
+				} else if (selection === vscode.l10n.t('Open Downloads Page')) {
 					await vscode.env.openExternal(vscode.Uri.parse(DOWNLOADS_PAGE_URL));
 				}
 			}
@@ -289,13 +277,13 @@ async function checkForUpdates(context: vscode.ExtensionContext, manualCheck: bo
 				await handleManualDownload(context, currentVersion, latestVersion, latestChangelogUrl);
 			}
 		} else if (manualCheck) {
-			vscode.window.showInformationMessage(t('✅ Kiro is up to date! Installed version: {0}', latestVersion));
+			vscode.window.showInformationMessage(vscode.l10n.t('✅ Kiro is up to date! Installed version: {0}', latestVersion));
 		}
 	} catch (error) {
 		log(`Error occurred while checking for updates: ${error}`);
 
 		if (manualCheck) {
-			vscode.window.showErrorMessage(t('An error occurred while checking for updates. Please try again later.'));
+			vscode.window.showErrorMessage(vscode.l10n.t('An error occurred while checking for updates. Please try again later.'));
 		}
 	}
 }
@@ -303,13 +291,13 @@ async function checkForUpdates(context: vscode.ExtensionContext, manualCheck: bo
 async function handleManualDownload(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, changelogUrl: string) {
 	log('Mode: Manual download (open browser).');
 	vscode.window.showWarningMessage(
-		t('🚀 New Kiro version available! {0} -> {1}.', currentVersion, latestVersion),
+		vscode.l10n.t('🚀 New Kiro version available! {0} -> {1}.', currentVersion, latestVersion),
 		{ modal: false },
-		t('Download Latest'),
-		t('Release Notes'),
-		t('Dismiss')
+		vscode.l10n.t('Download Latest'),
+		vscode.l10n.t('Release Notes'),
+		vscode.l10n.t('Dismiss')
 	).then(async selection => {
-		if (selection === t('Download Latest')) {
+		if (selection === vscode.l10n.t('Download Latest')) {
 			const info = detectPlatform();
 			if (!info) {
 				log('Unsupported platform. Opening downloads page instead.');
@@ -322,24 +310,38 @@ async function handleManualDownload(context: vscode.ExtensionContext, currentVer
 					log('Failed to open browser.');
 				}
 			}
-		} else if (selection === t('Release Notes')) {
+		} else if (selection === vscode.l10n.t('Release Notes')) {
 			log('Opening changelog for version ' + latestVersion);
 			await vscode.env.openExternal(vscode.Uri.parse(changelogUrl));
-		} else if (selection === t('Dismiss')) {
+		} else if (selection === vscode.l10n.t('Dismiss')) {
 			log(`User dismissed notifications for version ${latestVersion}.`);
 			await context.globalState.update(STATE_KEY_DISMISSED_VERSION, latestVersion);
 		}
 	});
 }
 
-async function checkUrl(url: string): Promise<number | null> {
+interface UrlCheckResult {
+	status: number | null;
+	size: number;
+}
+
+async function checkUrl(url: string): Promise<UrlCheckResult | null> {
+	const safeUrl = validateDownloadUrl(url);
+	if (!safeUrl) {
+		log(`Blocked HEAD check to untrusted URL: ${url}`);
+		return null;
+	}
 	return new Promise((resolve) => {
-		const request = https.request(url, {
+		const request = https.request(safeUrl, {
 			method: 'HEAD',
 			headers: { 'User-Agent': userAgentStr() },
 			timeout: 10000
 		}, (response) => {
-			resolve(response.statusCode || null);
+			const contentLength = parseInt(response.headers['content-length'] || '0', 10);
+			resolve({
+				status: response.statusCode || null,
+				size: Number.isFinite(contentLength) ? contentLength : 0
+			});
 		});
 		request.on('error', () => resolve(null));
 		request.on('timeout', () => { request.destroy(); resolve(null); });
@@ -357,16 +359,24 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 	}
 
 	const downloadUrl = buildDownloadUrl(latestVersion, info);
+	const safeDownloadUrl = validateDownloadUrl(downloadUrl);
+	if (!safeDownloadUrl) {
+		log(`Blocked download to untrusted URL: ${downloadUrl}`);
+		vscode.window.showErrorMessage(
+			vscode.l10n.t('❌ Kiro Update Checker: Failed to download {0}. Try manually.', latestVersion)
+		);
+		return;
+	}
 
 	// Check if the URL is actually accessible before downloading
-	const status = await checkUrl(downloadUrl);
-	if (status === 403) {
-		log(`Download URL returned 403 Forbidden: ${downloadUrl}`);
+	const check = await checkUrl(safeDownloadUrl);
+	if (!check || check.status === 403) {
+		log(`Download URL returned ${check ? check.status : 'no response'} for: ${downloadUrl}`);
 		const selection = await vscode.window.showErrorMessage(
-			t('❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.', info.ext),
-			t('Open Downloads Page')
+			vscode.l10n.t('❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.', info.ext),
+			vscode.l10n.t('Open Downloads Page')
 		);
-		if (selection === t('Open Downloads Page')) {
+		if (selection === vscode.l10n.t('Open Downloads Page')) {
 			await vscode.env.openExternal(vscode.Uri.parse(DOWNLOADS_PAGE_URL));
 		}
 		return;
@@ -375,11 +385,24 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 	const downloadFolder = getDownloadFolder();
 	const fileName = `kiro-ide-${latestVersion}-stable-${info.platform}-${info.arch}.${info.ext}`;
 	const filePath = path.join(downloadFolder, fileName);
+	const partPath = `${filePath}.part`;
 
 	if (fs.existsSync(filePath)) {
-		log(`Installer already exists at ${filePath}.`);
-		showInstallNotification(context, currentVersion, latestVersion, filePath, changelogUrl);
-		return;
+		// Only trust a fully-downloaded file whose size matches the expected one;
+		// anything else is treated as tampered/stale and replaced.
+		let valid = false;
+		if (check.size > 0) {
+			try {
+				valid = fs.statSync(filePath).size === check.size;
+			} catch {}
+		}
+		if (valid) {
+			log(`Installer already exists at ${filePath} and matches the expected size.`);
+			showInstallNotification(context, currentVersion, latestVersion, filePath, changelogUrl);
+			return;
+		}
+		log(`Existing file at ${filePath} does not match expected size. Re-downloading.`);
+		try { fs.unlinkSync(filePath); } catch {}
 	}
 
 	log(`Downloading installer from ${downloadUrl} to ${filePath}...`);
@@ -387,7 +410,7 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 	await vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,
-			title: t('⤵️ Kiro Update Checker: Downloading {0}', latestVersion),
+			title: vscode.l10n.t('⤵️ Kiro Update Checker: Downloading {0}', latestVersion),
 			cancellable: true
 		},
 		async (progress, token) => {
@@ -397,10 +420,15 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 				const downloadFile = (url: string, redirectDepth: number = 0) => {
 					if (redirectDepth > 5) {
 						log('Too many redirects. Aborting download.');
-						vscode.window.showErrorMessage(t('❌ Kiro Update Checker: Failed to download {0}. Try manually.', latestVersion));
+						vscode.window.showErrorMessage(vscode.l10n.t('❌ Kiro Update Checker: Failed to download {0}. Try manually.', latestVersion));
 						resolve();
 						return;
 					}
+
+					const cleanupPart = () => {
+						try { fs.unlinkSync(partPath); } catch {}
+					};
+
 					const request = https.get(url, {
 						headers: { 'User-Agent': userAgentStr() },
 						timeout: 120000
@@ -410,16 +438,20 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 							response.destroy();
 
 							const location = response.headers.location;
-							const redirectUrl = location.startsWith('http')
-								? location
-								: new URL(location, url).toString();
+							const redirectUrl = resolveSafeUrl(location, url);
+							if (!redirectUrl) {
+								log('Blocked redirect to untrusted destination during download.');
+								vscode.window.showErrorMessage(vscode.l10n.t('❌ Kiro Update Checker: Failed to download {0}. Try manually.', latestVersion));
+								resolve();
+								return;
+							}
 							downloadFile(redirectUrl, redirectDepth + 1);
 							return;
 						}
 
 						if (response.statusCode !== 200) {
 							log(`Failed to download file. Status code: ${response.statusCode}`);
-							vscode.window.showErrorMessage(t('❌ Kiro Update Checker: Failed to download {0}. Try manually.', latestVersion));
+vscode.window.showErrorMessage(vscode.l10n.t('❌ Kiro Update Checker: Failed to download {0}. Try manually.', latestVersion));
 							resolve();
 							return;
 						}
@@ -427,13 +459,14 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 						const totalSize = parseInt(response.headers['content-length'] || '0', 10);
 						let downloadedSize = 0;
 
-						const fileStream = fs.createWriteStream(filePath);
+						try { fs.unlinkSync(partPath); } catch {}
+						const fileStream = fs.createWriteStream(partPath, { flags: 'wx' });
 
 						token.onCancellationRequested(() => {
 							log('Download cancelled by user.');
 							request.destroy();
 							fileStream.destroy();
-							try { fs.unlinkSync(filePath); } catch {}
+							cleanupPart();
 							resolve();
 						});
 
@@ -451,8 +484,37 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 
 						response.pipe(fileStream);
 
-						fileStream.on('finish', () => {
+						response.on('error', (err) => {
+							if (completed) { return; }
+							log(`Error reading download response: ${err.message}`);
+							fileStream.destroy();
+							cleanupPart();
 							completed = true;
+							vscode.window.showErrorMessage(vscode.l10n.t('❌ Kiro Update Checker: Failed to download {0}. Try manually.', latestVersion));
+							resolve();
+						});
+
+						fileStream.on('finish', () => {
+							if (completed) { return; }
+							completed = true;
+							if (totalSize > 0 && downloadedSize !== totalSize) {
+								log(`Download incomplete: expected ${totalSize} bytes, got ${downloadedSize}. Aborting.`);
+								cleanupPart();
+								vscode.window.showErrorMessage(vscode.l10n.t('❌ Kiro Update Checker: Failed to download {0}. Try manually.', latestVersion));
+								resolve();
+								return;
+							}
+							try {
+								fs.renameSync(partPath, filePath);
+							} catch (err) {
+								log(`Failed to finalize installer file: ${err}`);
+								cleanupPart();
+								vscode.window.showErrorMessage(
+									vscode.l10n.t('❌ Kiro Update Checker: Error saving the installer. {0}', String(err))
+								);
+								resolve();
+								return;
+							}
 							log(`Download completed: ${filePath} (${formatBytes(downloadedSize)})`);
 							showInstallNotification(context, currentVersion, latestVersion, filePath, changelogUrl);
 							resolve();
@@ -460,10 +522,11 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 
 						fileStream.on('error', (err: NodeJS.ErrnoException) => {
 							if (completed) { return; }
-							log(`Error writing file to ${filePath}: ${err.message} (code: ${err.code})`);
-							try { fs.unlinkSync(filePath); } catch {}
+							completed = true;
+							log(`Error writing file to ${partPath}: ${err.message} (code: ${err.code})`);
+							cleanupPart();
 							vscode.window.showErrorMessage(
-								t('❌ Kiro Update Checker: Error saving the installer. {0}', err.message)
+								vscode.l10n.t('❌ Kiro Update Checker: Error saving the installer. {0}', err.message)
 							);
 							resolve();
 						});
@@ -471,18 +534,20 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 
 					request.on('error', (err) => {
 						if (completed) { return; }
+						completed = true;
 						log(`Error during download: ${err.message}`);
-						try { fs.unlinkSync(filePath); } catch {}
-						vscode.window.showErrorMessage(t('❌ Kiro Update Checker: Failed to download {0}. Try manually.', latestVersion));
+						cleanupPart();
+						vscode.window.showErrorMessage(vscode.l10n.t('❌ Kiro Update Checker: Failed to download {0}. Try manually.', latestVersion));
 						resolve();
 					});
 
 					request.on('timeout', () => {
 						if (completed) { return; }
+						completed = true;
 						log('Download request timed out (120 seconds).');
 						request.destroy();
-						try { fs.unlinkSync(filePath); } catch {}
-						vscode.window.showErrorMessage(t('❌ Kiro Update Checker: Failed to download {0}. Try manually.', latestVersion));
+						cleanupPart();
+						vscode.window.showErrorMessage(vscode.l10n.t('❌ Kiro Update Checker: Failed to download {0}. Try manually.', latestVersion));
 						resolve();
 					});
 				};
@@ -494,50 +559,79 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 }
 
 function showInstallNotification(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, filePath: string, changelogUrl: string) {
-	const plat = process.platform;
-	let shellPath: string | undefined;
-	let openCommand: string;
-
-	if (plat === 'win32') {
-		shellPath = 'cmd.exe';
-		openCommand = `start "" "${filePath}"`;
-	} else if (plat === 'darwin') {
-		shellPath = undefined;
-		openCommand = `open "${filePath}"`;
-	} else {
-		shellPath = undefined;
-		openCommand = `xdg-open "${filePath}"`;
-	}
-
 	vscode.window.showInformationMessage(
-		t('🚀 New Kiro version ready to install! {0} -> {1}.', currentVersion, latestVersion),
+		vscode.l10n.t('🚀 New Kiro version ready to install! {0} -> {1}.', currentVersion, latestVersion),
 		{ modal: false },
-		t('Install Now'),
-		t('Open folder'),
-		t('Release Notes'),
-		t('Dismiss')
+		vscode.l10n.t('Install Now'),
+		vscode.l10n.t('Open folder'),
+		vscode.l10n.t('Release Notes'),
+		vscode.l10n.t('Dismiss')
 	).then(async selection => {
-		if (selection === t('Install Now')) {
+		if (selection === vscode.l10n.t('Install Now')) {
 			log(`Installing Kiro from ${filePath}...`);
-
-			const terminal = vscode.window.createTerminal({ name: 'Kiro Installer', shellPath });
-			terminal.sendText(openCommand, true);
-			terminal.show();
-		} else if (selection === t('Open folder')) {
+			launchInstaller(filePath);
+		} else if (selection === vscode.l10n.t('Open folder')) {
 			const folderPath = path.dirname(filePath);
 			log(`Opening folder: ${folderPath}`);
 			const opened = await vscode.env.openExternal(vscode.Uri.file(folderPath));
 			if (!opened) {
 				log('Failed to open folder.');
 			}
-		} else if (selection === t('Release Notes')) {
+		} else if (selection === vscode.l10n.t('Release Notes')) {
 			log('Opening changelog for version ' + latestVersion);
 			await vscode.env.openExternal(vscode.Uri.parse(changelogUrl));
-		} else if (selection === t('Dismiss')) {
+		} else if (selection === vscode.l10n.t('Dismiss')) {
 			log(`User dismissed version ${latestVersion}.`);
 			await context.globalState.update(STATE_KEY_DISMISSED_VERSION, latestVersion);
 		}
 	});
+}
+
+function launchInstaller(filePath: string): void {
+	const plat = process.platform;
+	let executable: string;
+	let args: string[];
+
+	if (plat === 'win32') {
+		executable = 'cmd.exe';
+		args = ['/c', 'start', '', filePath];
+	} else if (plat === 'darwin') {
+		executable = 'open';
+		args = [filePath];
+	} else {
+		executable = 'xdg-open';
+		args = [filePath];
+	}
+
+	const openWithSystemHandler = (): void => {
+		vscode.env.openExternal(vscode.Uri.file(filePath)).then(opened => {
+			if (!opened) {
+				log(`Failed to open installer using system handler: ${filePath}`);
+			}
+		});
+	};
+
+	const terminal = vscode.window.createTerminal({ name: 'Kiro Installer' });
+	terminal.show();
+
+	if (terminal.shellIntegration) {
+		terminal.shellIntegration.executeCommand(executable, args);
+		return;
+	}
+
+	const disposable = vscode.window.onDidChangeTerminalShellIntegration(({ terminal: t, shellIntegration }) => {
+		if (t === terminal && shellIntegration) {
+			disposable.dispose();
+			terminal.shellIntegration?.executeCommand(executable, args);
+		}
+	});
+	setTimeout(() => {
+		disposable.dispose();
+		if (!terminal.shellIntegration) {
+			terminal.dispose();
+			openWithSystemHandler();
+		}
+	}, 3000);
 }
 
 function formatBytes(bytes: number): string {
@@ -573,10 +667,13 @@ function fetchLatestVersion(): Promise<VersionInfo | null> {
 					response.destroy();
 
 					const location = response.headers.location;
-					const redirectUrl = location.startsWith('http') 
-						? location 
-						: new URL(location, url).toString();
-					
+					const redirectUrl = resolveSafeUrl(location, url);
+					if (!redirectUrl) {
+						log('Blocked redirect to untrusted destination while fetching downloads page.');
+						resolve(null);
+						return;
+					}
+
 					followRedirect(redirectUrl, depth + 1);
 					return;
 				}
@@ -599,10 +696,19 @@ function fetchLatestVersion(): Promise<VersionInfo | null> {
 
 function handleResponse(response: IncomingMessage, resolve: (value: VersionInfo | null) => void) {
 	let html = '';
+	let sizeLimitReached = false;
 	response.on('data', (chunk: Buffer) => {
+		if (sizeLimitReached) { return; }
 		html += chunk.toString();
+		if (html.length > MAX_PAGE_SIZE_BYTES) {
+			sizeLimitReached = true;
+			log('HTML content exceeded size limit; aborting download of the downloads page.');
+			response.destroy();
+			resolve(null);
+		}
 	});
 	response.on('end', () => {
+		if (sizeLimitReached) { return; }
 		log('HTML content fetched. Extracting version...');
 		const version = parseVersionFromHTML(html);
 
@@ -619,7 +725,7 @@ function handleResponse(response: IncomingMessage, resolve: (value: VersionInfo 
 			resolve({ version, changelogUrl: changelogUrl || 'https://kiro.dev/changelog/' });
 		} else {
 			log('Could not extract version from HTML.');
-			const snippet = html.substring(0, 500);
+			const snippet = html.substring(0, 500).replace(/[\r\n]+/g, ' ');
 			log(`HTML snippet for debugging: ${snippet}`);
 			resolve(null);
 		}
@@ -741,6 +847,10 @@ function buildDownloadUrl(version: string, info: PlatformInfo): string {
 
 export function deactivate() {
 	log('Kiro Update Checker deactivated.');
+	if (outputChannel) {
+		outputChannel.dispose();
+		outputChannel = null;
+	}
 }
 
 // Exported for unit testing
