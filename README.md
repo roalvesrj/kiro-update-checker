@@ -4,6 +4,13 @@
   <img src="./images/KUC-logo.png" alt="Kiro Update Checker" width="256"/>
 </p>
 
+[![GitHub release](https://img.shields.io/github/release/roalvesrj/kiro-update-checker.svg)](https://github.com/roalvesrj/kiro-update-checker/releases)
+[![GitHub issues](https://img.shields.io/github/issues/roalvesrj/kiro-update-checker.svg)](https://github.com/roalvesrj/kiro-update-checker/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/roalvesrj/kiro-update-checker.svg)](https://github.com/roalvesrj/kiro-update-checker/issues)
+[![Open VSX Downloads](https://img.shields.io/open-vsx/dt/roalvesrj/kiro-update-checker)](https://open-vsx.org/extension/roalvesrj/kiro-update-checker)
+[![Open VSX Rating](https://img.shields.io/open-vsx/rating/roalvesrj/kiro-update-checker)](https://open-vsx.org/extension/roalvesrj/kiro-update-checker)
+
+
 Automatically checks the official Kiro downloads page for new IDE releases. Intended for users running Kiro in Administrator mode, where the built-in update feature may not be available.
 
 > **Disclaimer:** This is a community extension, not officially maintained by the Kiro team.
@@ -49,7 +56,7 @@ This extension contributes the following settings:
 | `kiroUpdateChecker.autoDownload` | `false` | Whether to automatically download and install new versions |
 | `kiroUpdateChecker.downloadFolder` | `""` | Custom folder to download updates to (empty = Downloads folder) |
 | `kiroUpdateChecker.checkInterval` | `60` | Interval in minutes to check for updates (0 = disable) |
-| `kiroUpdateChecker.packageFormat` | `"auto"` | Override the package format for downloads (auto, deb, tar.gz, AppImage, dmg, exe) |
+| `kiroUpdateChecker.packageFormat` | `"auto"` | Override the package format for downloads (auto, deb, tar.gz, dmg, pkg, exe) |
 
 ## Commands
 
@@ -87,6 +94,15 @@ This extension contributes the following settings:
 - Version detection relies on parsing the Kiro downloads page HTML
 
 ## Release Notes
+
+### 0.3.1
+
+- **Security:** sensitive settings are now machine-scoped (workspaces can't redirect downloads); installer reuse requires an extension-recorded download instead of a size match; auto-download is disabled in untrusted workspaces
+- **Security:** `packageFormat` validated per-OS at runtime; URL allowlist rejects credentials/non-443 ports
+- **Fixed:** Windows ARM64 detection (was always x64); macOS `.pkg` support; `AppImage` option removed (no longer published by Kiro)
+- **Fixed:** `checkInterval` now actually runs periodic checks (5–1440 min, clamped)
+- **Fixed:** single-flight checks, immediate download cancellation, redirect handler leaks, 2 GB download cap, strict version comparison (prerelease-aware)
+- **Fixed:** Kiro detection no longer rejects app names containing "Code"/"Studio"; installed version validation is strict
 
 ### 0.3.0
 

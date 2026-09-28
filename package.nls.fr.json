@@ -9,7 +9,7 @@
 	"kiroUpdateChecker.packageFormat.enumAuto": "Auto-détection (recommandé)",
 	"kiroUpdateChecker.packageFormat.enumDeb": ".deb (Debian/Ubuntu)",
 	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Linux Universel)",
-	"kiroUpdateChecker.packageFormat.enumAppImage": ".AppImage (Linux Universel)",
 	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
-	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)"
+	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)",
+	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg (programme d'installation macOS)"
 }

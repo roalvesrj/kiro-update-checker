@@ -15,5 +15,6 @@
 	"Open folder": "Abrir pasta",
 	"An error occurred while checking for updates. Please try again later.": "Ocorreu um erro ao verificar atualizações. Tente novamente mais tarde.",
 	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker: Download direto não disponível para sua plataforma ({0}). Visite a página de downloads.",
-	"Release Notes": "Notas da Versão"
+	"Release Notes": "Notas da Versão",
+	"Kiro Update Checker: An update check is already in progress.": "Kiro Update Checker: já existe uma verificação de atualização em andamento."
 }

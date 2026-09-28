@@ -15,5 +15,6 @@
 	"Open folder": "打开文件夹",
 	"An error occurred while checking for updates. Please try again later.": "检查更新时发生错误。请稍后重试。",
 	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker：您的平台 ({0}) 不支持直接下载。请访问下载页面。",
-	"Release Notes": "发行说明"
+	"Release Notes": "发行说明",
+	"Kiro Update Checker: An update check is already in progress.": "Kiro Update Checker: 已有更新检查正在进行中。"
 }

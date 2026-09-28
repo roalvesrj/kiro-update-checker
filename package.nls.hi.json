@@ -9,7 +9,7 @@
 	"kiroUpdateChecker.packageFormat.enumAuto": "स्वचालित पहचान (अनुशंसित)",
 	"kiroUpdateChecker.packageFormat.enumDeb": ".deb (Debian/Ubuntu)",
 	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Universal Linux)",
-	"kiroUpdateChecker.packageFormat.enumAppImage": ".AppImage (Universal Linux)",
 	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
-	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)"
+	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)",
+	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg (macOS इंस्टॉलर)"
 }

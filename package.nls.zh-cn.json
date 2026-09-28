@@ -9,7 +9,7 @@
 	"kiroUpdateChecker.packageFormat.enumAuto": "自动检测（推荐）",
 	"kiroUpdateChecker.packageFormat.enumDeb": ".deb (Debian/Ubuntu)",
 	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz（通用 Linux）",
-	"kiroUpdateChecker.packageFormat.enumAppImage": ".AppImage（通用 Linux）",
 	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
-	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)"
+	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)",
+	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg（macOS 安装程序）"
 }

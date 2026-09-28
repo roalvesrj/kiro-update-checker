@@ -15,5 +15,6 @@
 	"Open folder": "Mở thư mục",
 	"An error occurred while checking for updates. Please try again later.": "Đã xảy ra lỗi khi kiểm tra cập nhật. Vui lòng thử lại sau.",
 	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker: Tải xuống trực tiếp không khả dụng cho nền tảng của bạn ({0}). Truy cập trang tải xuống.",
-	"Release Notes": "Ghi Chú Phát Hành"
+	"Release Notes": "Ghi Chú Phát Hành",
+	"Kiro Update Checker: An update check is already in progress.": "Kiro Update Checker: đang có một lần kiểm tra cập nhật diễn ra."
 }
