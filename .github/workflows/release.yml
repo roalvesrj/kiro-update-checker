@@ -34,7 +34,7 @@ jobs:
         run: xvfb-run --auto-servernum npm test
 
       - name: Package VSIX
-        run: npx vsce package
+        run: npx @vscode/vsce package
 
       - name: Read version
         id: version
@@ -42,21 +42,21 @@ jobs:
 
       - name: Write release body
         run: |
-          node -e "
-            const fs = require('fs');
-            const version = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
-            const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
-            const sections = changelog.split(/\n(?=## )/);
-            const heading = '## [' + version + ']';
-            const found = sections.find(s => s.startsWith(heading));
-            const raw = found ? found.trim() : 'Version ' + version + ' of Kiro Update Checker.';
-            // Relative image paths work in the IDE (bundled in the VSIX) but not in
-            // GitHub release bodies, so rewrite them to absolute raw URLs.
-            const body = raw
-              .replace(/\]\((?:\.\/)?images\//g, '](https://raw.githubusercontent.com/roalvesrj/kiro-update-checker/main/images/')
-              .replace(/src="(?:\.\/)?images\//g, 'src="https://raw.githubusercontent.com/roalvesrj/kiro-update-checker/main/images/');
-            fs.writeFileSync('RELEASE_BODY.md', body);
-          "
+          node <<'NODE'
+          const fs = require('fs');
+          const version = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
+          const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+          const sections = changelog.split(/\n(?=## )/);
+          const heading = '## [' + version + ']';
+          const found = sections.find(s => s.startsWith(heading));
+          const raw = found ? found.trim() : 'Version ' + version + ' of Kiro Update Checker.';
+          // Relative image paths work in the IDE (bundled in the VSIX) but not in
+          // GitHub release bodies, so rewrite them to absolute raw URLs.
+          const body = raw
+            .replace(/\]\((?:\.\/)?images\//g, '](https://raw.githubusercontent.com/roalvesrj/kiro-update-checker/main/images/')
+            .replace(/src="(?:\.\/)?images\//g, 'src="https://raw.githubusercontent.com/roalvesrj/kiro-update-checker/main/images/');
+          fs.writeFileSync('RELEASE_BODY.md', body);
+          NODE
 
       - name: Check if tag exists
         id: check_tag
