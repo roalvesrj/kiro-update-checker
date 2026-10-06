@@ -1,5 +1,24 @@
 # Change Log
 
+## [0.4.0] - 2026-09-28
+### Added
+- **Official update feed**: version detection now uses Kiro's own updater metadata endpoint (`{updateUrl}/{quality}/metadata-{target}-{quality}.json`, read from the local `product.json`), falling back to the downloads page HTML only if the feed is unavailable — the extension no longer depends on scraping the page
+- **No more console**: **Install Now** now hands the installer to the system handler instead of spawning a terminal window
+
+### Changed
+- `product.json` is now the single source for version, update URL, quality and install target
+- `autoDownload` description clarified (downloads only — installing is a separate action)
+
+### Fixed
+- Version detection is no longer fragile against downloads page redesigns
+- Feed payloads are parsed defensively (strict version validation, size caps, redirect allowlist)
+
+### Removed
+- Terminal-based installer launch (`TerminalShellIntegration` usage)
+
+### Internal
+- New `src/feed.ts` module with tests against real feed payloads
+
 ## [0.3.1] - 2026-09-28
 ### Security
 - Settings `autoDownload`, `downloadFolder` and `packageFormat` are now `machine`-scoped — a malicious workspace can no longer redirect downloads, change the package format or enable auto-download via `.vscode/settings.json`

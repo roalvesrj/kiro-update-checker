@@ -8,14 +8,18 @@ import { execFileSync } from 'child_process';
 import { IncomingMessage } from 'http';
 import { setLogSink, log } from './log';
 import { resolveSafeUrl, validateDownloadUrl } from './urls';
-import { compareVersions, parseVersionFromHTML, parseChangelogUrlFromHTML } from './version';
+import { compareVersions, parseVersionFromHTML, parseChangelogUrlFromHTML, PreferredPlatform } from './version';
 import { buildDownloadUrl, detectPlatform, PlatformInfo } from './platform';
+import { FeedInfo, feedTargets, parseMetadataFeed } from './feed';
 
 const DOWNLOADS_PAGE_URL = 'https://kiro.dev/downloads/';
 const FALLBACK_CHANGELOG_URL = 'https://kiro.dev/changelog/';
+const DEFAULT_UPDATE_URL = 'https://prod.download.desktop.kiro.dev';
+const DEFAULT_QUALITY = 'stable';
 const STATE_KEY_DISMISSED_VERSION = 'kiroUpdateChecker.dismissedVersion';
 const STATE_KEY_INSTALLER_PREFIX = 'kiroUpdateChecker.installer.';
 const MAX_PAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_FEED_SIZE_BYTES = 1024 * 1024;
 const MAX_INSTALLER_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
 const HEAD_TIMEOUT_MS = 10000;
@@ -32,6 +36,44 @@ let intervalHandle: NodeJS.Timeout | null = null;
 
 function userAgentStr(): string {
 	return `KiroUpdateChecker/${extensionVersion}`;
+}
+
+interface KiroProductInfo {
+	version: string | null;
+	updateUrl: string;
+	quality: string;
+	installTarget: string;
+}
+
+function readKiroProductInfo(): KiroProductInfo {
+	const defaults: KiroProductInfo = {
+		version: null,
+		updateUrl: DEFAULT_UPDATE_URL,
+		quality: DEFAULT_QUALITY,
+		installTarget: ''
+	};
+	try {
+		const productPath = path.join(vscode.env.appRoot, 'product.json');
+		if (!fs.existsSync(productPath)) {
+			return defaults;
+		}
+		const json = JSON.parse(fs.readFileSync(productPath, 'utf8'));
+		return {
+			version: typeof json.version === 'string' && INSTALLER_VERSION_PATTERN.test(json.version.trim())
+				? json.version.trim()
+				: null,
+			updateUrl: typeof json.updateUrl === 'string' && json.updateUrl.trim()
+				? json.updateUrl.trim()
+				: defaults.updateUrl,
+			quality: typeof json.quality === 'string' && json.quality.trim()
+				? json.quality.trim()
+				: defaults.quality,
+			installTarget: typeof json.target === 'string' ? json.target.trim() : ''
+		};
+	} catch (e) {
+		log(`Failed to read product.json: ${e}`);
+	}
+	return defaults;
 }
 
 function isKiro(): boolean {
@@ -176,7 +218,7 @@ function checkForUpdates(context: vscode.ExtensionContext, manualCheck: boolean 
 
 async function runCheckForUpdates(context: vscode.ExtensionContext, manualCheck: boolean): Promise<void> {
 	try {
-		log('Fetching the Kiro downloads page...');
+		log('Fetching the latest Kiro version...');
 		const versionInfo = await fetchLatestVersion();
 
 		if (!versionInfo) {
@@ -237,14 +279,12 @@ async function runCheckForUpdates(context: vscode.ExtensionContext, manualCheck:
 
 			const config = vscode.workspace.getConfiguration('kiroUpdateChecker');
 			const autoDownload = config.get<boolean>('autoDownload', false);
-			const trusted = vscode.workspace.isTrusted;
 
-			if (autoDownload && !trusted) {
+			if (autoDownload && !vscode.workspace.isTrusted) {
 				log('Workspace is not trusted; falling back to manual download.');
-			}
-
-			if (autoDownload && trusted) {
-				log('Auto-download is enabled. Downloading the latest version...');
+				await handleManualDownload(context, currentVersion, latestVersion, latestChangelogUrl);
+			} else if (autoDownload) {
+				log('Automatic download enabled.');
 				await handleAutoDownload(context, currentVersion, latestVersion, latestChangelogUrl);
 			} else {
 				await handleManualDownload(context, currentVersion, latestVersion, latestChangelogUrl);
@@ -405,7 +445,7 @@ async function checkUrl(url: string): Promise<UrlCheckResult | null> {
 }
 
 async function handleAutoDownload(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, changelogUrl: string): Promise<void> {
-	log('Mode: Auto-download and install.');
+	log('Mode: Auto-download.');
 	const info = detectCurrentPlatform();
 	if (!info) {
 		log('Unsupported platform for auto-download. Falling back to manual download.');
@@ -665,8 +705,8 @@ function showInstallNotification(context: vscode.ExtensionContext, currentVersio
 		dismissBtn
 	).then(async selection => {
 		if (selection === installBtn) {
-			log(`Installing Kiro from ${filePath}...`);
-			launchInstaller(filePath);
+			// Hand the downloaded installer to the system handler (no terminal window).
+			await openInstallerFile(filePath);
 		} else if (selection === openFolderBtn) {
 			const folderPath = path.dirname(filePath);
 			log(`Opening folder: ${folderPath}`);
@@ -688,6 +728,17 @@ function showInstallNotification(context: vscode.ExtensionContext, currentVersio
 	}, err => log(`Install notification failed: ${err}`));
 }
 
+async function openInstallerFile(filePath: string): Promise<void> {
+	try {
+		const opened = await vscode.env.openExternal(vscode.Uri.file(filePath));
+		if (!opened) {
+			log(`Failed to open installer with the system handler: ${filePath}`);
+		}
+	} catch (err) {
+		log(`Error opening installer: ${err}`);
+	}
+}
+
 async function openExternalSafe(url: string, label: string): Promise<void> {
 	const safeUrl = validateDownloadUrl(url);
 	if (!safeUrl) {
@@ -702,67 +753,6 @@ async function openExternalSafe(url: string, label: string): Promise<void> {
 	} catch (err) {
 		log(`Error opening ${label}: ${err}`);
 	}
-}
-
-function launchInstaller(filePath: string): void {
-	const plat = process.platform;
-	let executable: string;
-	let args: string[];
-
-	if (plat === 'win32') {
-		executable = 'cmd.exe';
-		args = ['/c', 'start', '', filePath];
-	} else if (plat === 'darwin') {
-		executable = 'open';
-		args = [filePath];
-	} else {
-		executable = 'xdg-open';
-		args = [filePath];
-	}
-
-	const openWithSystemHandler = (): void => {
-		vscode.env.openExternal(vscode.Uri.file(filePath)).then(opened => {
-			if (!opened) {
-				log(`Failed to open installer using system handler: ${filePath}`);
-			}
-		}, err => log(`Error opening installer: ${err}`));
-	};
-
-	const runCommand = (terminal: vscode.Terminal): void => {
-		const shellIntegration = terminal.shellIntegration;
-		if (!shellIntegration) {
-			terminal.dispose();
-			openWithSystemHandler();
-			return;
-		}
-		try {
-			shellIntegration.executeCommand(executable, args);
-		} catch (err) {
-			log(`Failed to run installer command: ${err}`);
-			openWithSystemHandler();
-		}
-	};
-
-	const terminal = vscode.window.createTerminal({ name: 'Kiro Installer' });
-	terminal.show();
-
-	if (terminal.shellIntegration) {
-		runCommand(terminal);
-		return;
-	}
-
-	const disposable = vscode.window.onDidChangeTerminalShellIntegration(({ terminal: t, shellIntegration }) => {
-		if (t === terminal && shellIntegration) {
-			disposable.dispose();
-			runCommand(terminal);
-		}
-	});
-	setTimeout(() => {
-		disposable.dispose();
-		if (!terminal.shellIntegration) {
-			runCommand(terminal);
-		}
-	}, 3000);
 }
 
 function formatBytes(bytes: number): string {
@@ -781,7 +771,137 @@ interface VersionInfo {
 	changelogUrl: string;
 }
 
-function fetchLatestVersion(): Promise<VersionInfo | null> {
+function fetchJson(url: string, maxBytes: number, timeoutMs: number, depth: number = 0): Promise<unknown | null> {
+	const safeUrl = validateDownloadUrl(url);
+	if (!safeUrl) {
+		log(`Blocked untrusted feed URL: ${url}`);
+		return Promise.resolve(null);
+	}
+	return new Promise((resolve) => {
+		let settled = false;
+		const done = (value: unknown | null) => {
+			if (settled) { return; }
+			settled = true;
+			resolve(value);
+		};
+		const request = https.get(safeUrl, {
+			headers: { 'User-Agent': userAgentStr() },
+			timeout: timeoutMs
+		}, (response) => {
+			const status = response.statusCode || 0;
+
+			if (status >= 300 && status < 400 && response.headers.location) {
+				const location = response.headers.location;
+				const redirectUrl = resolveSafeUrl(location, safeUrl);
+				request.removeAllListeners();
+				response.removeAllListeners();
+				response.destroy();
+				if (!redirectUrl || depth >= MAX_REDIRECTS) {
+					log('Blocked or excessive redirect while fetching feed.');
+					done(null);
+					return;
+				}
+				fetchJson(redirectUrl, maxBytes, timeoutMs, depth + 1).then(done);
+				return;
+			}
+
+			if (status !== 200) {
+				log(`Feed request returned status ${status}: ${safeUrl}`);
+				response.resume();
+				done(null);
+				return;
+			}
+
+			let total = 0;
+			const chunks: Buffer[] = [];
+			response.on('data', (chunk: Buffer) => {
+				total += chunk.length;
+				if (total > maxBytes) {
+					log('Feed response exceeded the size limit.');
+					response.destroy();
+					done(null);
+					return;
+				}
+				chunks.push(chunk);
+			});
+			response.on('end', () => {
+				try {
+					done(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+				} catch (err) {
+					log(`Failed to parse feed JSON: ${err}`);
+					done(null);
+				}
+			});
+			response.on('error', (err) => {
+				log(`Feed response error: ${err.message}`);
+				done(null);
+			});
+		});
+		request.on('error', (err) => {
+			log(`Feed request error: ${err.message}`);
+			done(null);
+		});
+		request.on('timeout', () => {
+			request.destroy();
+			log(`Feed request timed out (${timeoutMs / 1000} seconds).`);
+			done(null);
+		});
+	});
+}
+
+async function fetchVersionFeed(targets: string[], updateUrl: string, quality: string): Promise<FeedInfo | null> {
+	if (targets.length === 0) {
+		return null;
+	}
+	const base = updateUrl.replace(/\/+$/, '');
+	for (const target of targets) {
+		const url = `${base}/${quality}/metadata-${target}-${quality}.json`;
+		const payload = await fetchJson(url, MAX_FEED_SIZE_BYTES, PAGE_TIMEOUT_MS);
+		if (!payload) { continue; }
+		const feed = parseMetadataFeed(payload);
+		if (feed) {
+			log(`Version feed (${target}): ${feed.version}`);
+			return feed;
+		}
+		log(`Feed (${target}) returned an unexpected payload shape.`);
+	}
+	return null;
+}
+
+function fallbackChangelogUrl(version: string): string {
+	const url = `https://kiro.dev/changelog/ide/${version.replace(/\./g, '-')}/`;
+	return validateDownloadUrl(url) ?? FALLBACK_CHANGELOG_URL;
+}
+
+async function fetchLatestVersion(): Promise<VersionInfo | null> {
+	const product = readKiroProductInfo();
+	const platform = detectCurrentPlatform();
+	const targets = platform ? feedTargets(platform.platform, platform.arch, product.installTarget) : [];
+
+	const [feed, fromHtml] = await Promise.all([
+		fetchVersionFeed(targets, product.updateUrl, product.quality),
+		fetchVersionFromHtml(platform ?? undefined)
+	]);
+
+	if (feed) {
+		if (fromHtml && fromHtml.version !== feed.version) {
+			log(`Version mismatch: feed=${feed.version}, page=${fromHtml.version}; trusting the feed.`);
+		}
+		return {
+			version: feed.version,
+			changelogUrl: fromHtml?.changelogUrl ?? fallbackChangelogUrl(feed.version)
+		};
+	}
+
+	if (fromHtml) {
+		log('Version feed unavailable; using the downloads page result.');
+		return fromHtml;
+	}
+
+	return null;
+}
+
+function fetchVersionFromHtml(platformHint?: PreferredPlatform): Promise<VersionInfo | null> {
 	return new Promise((resolve) => {
 		let settled = false;
 		const done = (value: VersionInfo | null) => {
@@ -826,7 +946,7 @@ function fetchLatestVersion(): Promise<VersionInfo | null> {
 				}
 
 				log(`Fetching downloads page. Status code: ${response.statusCode}`);
-				handleResponse(response, done);
+				handleResponse(response, platformHint, done);
 			});
 			request.on('error', (err) => {
 				log(`Error fetching downloads page: ${err.message}`);
@@ -843,7 +963,7 @@ function fetchLatestVersion(): Promise<VersionInfo | null> {
 	});
 }
 
-function handleResponse(response: IncomingMessage, resolve: (value: VersionInfo | null) => void) {
+function handleResponse(response: IncomingMessage, platformHint: PreferredPlatform | undefined, resolve: (value: VersionInfo | null) => void) {
 	const chunks: Buffer[] = [];
 	let totalBytes = 0;
 	let capped = false;
@@ -865,19 +985,16 @@ function handleResponse(response: IncomingMessage, resolve: (value: VersionInfo 
 		if (capped) { return; }
 		log('HTML content fetched. Extracting version...');
 		const html = Buffer.concat(chunks).toString('utf8');
-		const platformHint = detectCurrentPlatform() ?? undefined;
 		const version = parseVersionFromHTML(html, platformHint);
 
 		if (version) {
-			log(`Extracted latest version: ${version}`);
+			log(`Extracted version from page: ${version}`);
 			const changelogUrl = parseChangelogUrlFromHTML(html);
-
 			if (changelogUrl) {
 				log(`Extracted changelog URL: ${changelogUrl}`);
 			} else {
 				log('Could not extract changelog URL from HTML, using generic fallback.');
 			}
-
 			resolve({ version, changelogUrl: changelogUrl || FALLBACK_CHANGELOG_URL });
 		} else {
 			const digest = crypto.createHash('sha256').update(html).digest('hex').slice(0, 16);
@@ -894,14 +1011,18 @@ function handleResponse(response: IncomingMessage, resolve: (value: VersionInfo 
 }
 
 function getCurrentKiroVersion(): string | null {
+	const fromProduct = readKiroProductInfo().version;
+	if (fromProduct) {
+		log(`Current Kiro version from product.json: ${fromProduct}`);
+		return fromProduct;
+	}
+
 	try {
 		const appRoot = vscode.env.appRoot;
 		log(`VSCode/Kiro appRoot: ${appRoot}`);
 
 		const candidatePaths: string[] = [
-			path.join(appRoot, 'product.json'),
 			path.join(appRoot, 'resources', 'app', 'product.json'),
-			path.join(appRoot, '..', 'product.json'),
 			path.join(appRoot, 'package.json'),
 			path.join(appRoot, '..', 'package.json')
 		];

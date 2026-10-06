@@ -4,7 +4,66 @@ import * as path from 'path';
 import { compareVersions, parseVersion, parseVersionFromHTML, parseChangelogUrlFromHTML } from '../version';
 import { buildDownloadUrl, detectPlatform, detectLinuxDistro } from '../platform';
 import { isAllowedHost, resolveSafeUrl, validateDownloadUrl } from '../urls';
+import { artifactFor, feedTargets, parseMetadataFeed } from '../feed';
 import { formatBytes } from '../extension';
+
+// Real payloads captured from https://prod.download.desktop.kiro.dev/stable/metadata-*-stable.json
+// (2026-09-28, Kiro 1.1.70).
+const FEED_WIN32_USER = {
+	currentRelease: '1.1.70',
+	releases: [{
+		version: '1.1.70',
+		updateTo: {
+			version: '1.1.70',
+			pub_date: '2026-09-24',
+			notes: 'Kiro-win32-x64-user-1.1.70',
+			name: 'Kiro-win32-x64-user-1.1.70',
+			url: 'https://prod.download.desktop.kiro.dev/releases/stable/win32-x64/signed/1.1.70/kiro-ide-1.1.70-stable-win32-x64.exe'
+		}
+	}]
+};
+
+const FEED_DARWIN_ARM64 = {
+	currentRelease: '1.1.70',
+	releases: [{
+		version: '1.1.70',
+		updateTo: {
+			version: '1.1.70',
+			pub_date: '2026-09-24',
+			url: 'https://prod.download.desktop.kiro.dev/releases/stable/darwin-arm64/signed/1.1.70/kiro-ide-1.1.70-stable-darwin-arm64.zip'
+		}
+	}]
+};
+
+const FEED_LINUX_X64 = {
+	currentRelease: '1.1.70',
+	releases: [
+		{
+			version: '1.1.70',
+			updateTo: {
+				version: '1.1.70',
+				pub_date: '2026-09-24',
+				url: 'https://prod.download.desktop.kiro.dev/releases/stable/linux-x64/signed/1.1.70/tar/certificate.pem'
+			}
+		},
+		{
+			version: '1.1.70',
+			updateTo: {
+				version: '1.1.70',
+				pub_date: '2026-09-24',
+				url: 'https://prod.download.desktop.kiro.dev/releases/stable/linux-x64/signed/1.1.70/tar/kiro-ide-1.1.70-stable-linux-x64.tar.gz'
+			}
+		},
+		{
+			version: '1.1.70',
+			updateTo: {
+				version: '1.1.70',
+				pub_date: '2026-09-24',
+				url: 'https://prod.download.desktop.kiro.dev/releases/stable/linux-x64/signed/1.1.70/tar/signature.bin'
+			}
+		}
+	]
+};
 
 // Snippet shaped after the real https://kiro.dev/downloads/ page (2026-09-28):
 // escaped currentVersion JSON blob, signed download links for every artifact and
@@ -254,6 +313,87 @@ suite('detectLinuxDistro', () => {
 		}
 	});
 });
+
+suite('parseMetadataFeed', () => {
+	test('parses the real win32 user feed', () => {
+		const feed = parseMetadataFeed(FEED_WIN32_USER);
+		assert.ok(feed);
+		assert.strictEqual(feed.version, '1.1.70');
+		assert.strictEqual(feed.artifacts.length, 1);
+		assert.ok(feed.artifacts[0].url.endsWith('.exe'));
+		assert.strictEqual(feed.artifacts[0].pubDate, '2026-09-24');
+	});
+
+	test('parses the real darwin feed (zip updater artifact)', () => {
+		const feed = parseMetadataFeed(FEED_DARWIN_ARM64);
+		assert.ok(feed);
+		assert.strictEqual(feed.version, '1.1.70');
+		const zip = artifactFor(feed.artifacts, 'zip');
+		assert.ok(zip?.url.endsWith('.zip'));
+	});
+
+	test('parses the real linux feed and filters signing artifacts', () => {
+		const feed = parseMetadataFeed(FEED_LINUX_X64);
+		assert.ok(feed);
+		assert.strictEqual(feed.version, '1.1.70');
+		assert.strictEqual(feed.artifacts.length, 3);
+		const tarGz = artifactFor(feed.artifacts, 'tar.gz');
+		assert.ok(tarGz?.url.endsWith('.tar.gz'));
+		assert.strictEqual(artifactFor(feed.artifacts, 'zip'), null);
+	});
+
+	test('falls back to the highest artifact version when currentRelease is missing', () => {
+		const feed = parseMetadataFeed({
+			releases: [
+				{ updateTo: { version: '1.0.9', url: 'https://prod.download.desktop.kiro.dev/a.exe' } },
+				{ updateTo: { version: '1.1.70', url: 'https://prod.download.desktop.kiro.dev/b.exe' } }
+			]
+		});
+		assert.strictEqual(feed?.version, '1.1.70');
+	});
+
+	test('rejects malformed payloads', () => {
+		assert.strictEqual(parseMetadataFeed(null), null);
+		assert.strictEqual(parseMetadataFeed('nope'), null);
+		assert.strictEqual(parseMetadataFeed([]), null);
+		assert.strictEqual(parseMetadataFeed({}), null);
+		assert.strictEqual(parseMetadataFeed({ currentRelease: 'not-a-version' }), null);
+		assert.strictEqual(parseMetadataFeed({ releases: 'nope' }), null);
+		assert.strictEqual(parseMetadataFeed({ releases: [{ updateTo: { version: '1.0.0' } }] }), null);
+	});
+
+	test('ignores invalid versions inside releases', () => {
+		const feed = parseMetadataFeed({
+			currentRelease: '1.1.70',
+			releases: [
+				{ updateTo: { version: 'bad', url: 'https://prod.download.desktop.kiro.dev/a.exe' } },
+				{ updateTo: { version: '1.1.70', url: 'https://prod.download.desktop.kiro.dev/b.exe' } }
+			]
+		});
+		assert.strictEqual(feed?.artifacts.length, 1);
+	});
+});
+
+suite('feedTargets', () => {
+	test('builds Windows targets honoring the install target', () => {
+		assert.deepStrictEqual(feedTargets('win32', 'x64', 'user'), [
+			'win32-x64-user', 'win32-x64-system', 'win32-x64-archive'
+		]);
+		assert.deepStrictEqual(feedTargets('win32', 'arm64', 'system'), [
+			'win32-arm64-system', 'win32-arm64-user', 'win32-arm64-archive'
+		]);
+	});
+
+	test('builds macOS and Linux targets', () => {
+		assert.deepStrictEqual(feedTargets('darwin', 'arm64'), ['darwin-arm64']);
+		assert.deepStrictEqual(feedTargets('linux', 'x64'), ['linux-x64']);
+	});
+
+	test('returns no targets for unknown platforms', () => {
+		assert.deepStrictEqual(feedTargets('freebsd', 'x64'), []);
+	});
+});
+
 
 suite('l10n contract', () => {
 	test('every l10n key used in code exists in all bundles with matching placeholders', () => {

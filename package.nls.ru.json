@@ -3,7 +3,7 @@
 	"kiroUpdateChecker.config.title": "Конфигурация Kiro Update Checker",
 	"kiroUpdateChecker.checkInterval.description": "Интервал в минутах для проверки обновлений. Установите 0 для отключения.",
 	"kiroUpdateChecker.enableOnStartup.description": "Проверять обновления при запуске.",
-	"kiroUpdateChecker.autoDownload.description": "Автоматически загружать и устанавливать новые версии.",
+	"kiroUpdateChecker.autoDownload.description": "Автоматически загружать новые версии, когда они доступны.",
 	"kiroUpdateChecker.downloadFolder.description": "Пользовательская папка для загрузки обновлений. Оставьте пустым для использования папки Загрузки по умолчанию.",
 	"kiroUpdateChecker.packageFormat.description": "Переопределить формат пакета для загрузки. Установите 'auto' для автоматического определения.",
 	"kiroUpdateChecker.packageFormat.enumAuto": "Автоопределение (рекомендуется)",

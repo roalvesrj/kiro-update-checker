@@ -11,15 +11,17 @@
 [![Open VSX Rating](https://img.shields.io/open-vsx/rating/roalvesrj/kiro-update-checker)](https://open-vsx.org/extension/roalvesrj/kiro-update-checker)
 
 
-Automatically checks the official Kiro downloads page for new IDE releases. Intended for users running Kiro in Administrator mode, where the built-in update feature may not be available.
+Automatically checks for new Kiro IDE releases using Kiro's own update feed. Intended for users running Kiro in Administrator mode, where the built-in update feature may not be available.
 
 > **Disclaimer:** This is a community extension, not officially maintained by the Kiro team.
 
 ## Features
 
 - Checks for new Kiro IDE releases on startup and at configurable intervals
+- **Official update feed**: version detection uses Kiro's own updater JSON feed (no more HTML scraping), with the downloads page only as fallback
 - Notifies you when a new version is available
 - Supports auto-downloading the installer
+- **No console windows**: **Install Now** hands the installer to the system handler
 - Manual check command: **Kiro: Check for Updates Now**
 - Dismiss notification for a specific version
 - **Release Notes button**: opens official Kiro changelog in your browser
@@ -53,7 +55,7 @@ This extension contributes the following settings:
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `kiroUpdateChecker.enableOnStartup` | `true` | Whether to check for updates on startup |
-| `kiroUpdateChecker.autoDownload` | `false` | Whether to automatically download and install new versions |
+| `kiroUpdateChecker.autoDownload` | `false` | Automatically download new versions when they become available (you still choose when to install) |
 | `kiroUpdateChecker.downloadFolder` | `""` | Custom folder to download updates to (empty = Downloads folder) |
 | `kiroUpdateChecker.checkInterval` | `60` | Interval in minutes to check for updates (0 = disable) |
 | `kiroUpdateChecker.packageFormat` | `"auto"` | Override the package format for downloads (auto, deb, tar.gz, dmg, pkg, exe) |
@@ -87,13 +89,16 @@ This extension contributes the following settings:
 - Kiro IDE (Visual Studio Code fork) based on VS Code **1.93.0 or newer**
 - Windows, macOS, or Linux
 
-> **Note:** version 0.3.0+ requires a Kiro build based on VS Code ≥ 1.93 (for the `TerminalShellIntegration` API). Users on older Kiro builds will remain on 0.2.2.
-
-## Known Issues
-
-- Version detection relies on parsing the Kiro downloads page HTML
+> **Note:** version 0.3.0+ requires a Kiro build based on VS Code ≥ 1.93. Users on older Kiro builds will remain on 0.2.2.
 
 ## Release Notes
+
+### 0.4.0
+
+- **Official update feed**: version detection now uses Kiro's own updater JSON feed (`metadata-{target}-{quality}.json`, from the local `product.json`) — the "HTML scraping" known issue is gone, and detection is immune to downloads page redesigns
+- **No more console**: **Install Now** opens the installer with the system handler instead of spawning a terminal window
+- The downloads page is still used as a fallback when the feed is unavailable, and for the exact changelog link
+- Feed payloads are parsed defensively (strict validation, size caps, redirect allowlist)
 
 ### 0.3.1
 

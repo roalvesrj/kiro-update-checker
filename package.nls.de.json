@@ -3,7 +3,7 @@
 	"kiroUpdateChecker.config.title": "Kiro Update Checker Konfiguration",
 	"kiroUpdateChecker.checkInterval.description": "Intervall in Minuten für die Suche nach Updates. Setzen Sie 0 zum Deaktivieren.",
 	"kiroUpdateChecker.enableOnStartup.description": "Beim Start nach Updates suchen.",
-	"kiroUpdateChecker.autoDownload.description": "Neue Versionen automatisch herunterladen und installieren.",
+	"kiroUpdateChecker.autoDownload.description": "Neue Versionen automatisch herunterladen, sobald sie verfügbar sind.",
 	"kiroUpdateChecker.downloadFolder.description": "Benutzerdefinierter Ordner für Downloads. Leer lassen für den Standard-Downloads-Ordner.",
 	"kiroUpdateChecker.packageFormat.description": "Paketformat für Downloads überschreiben. Auf 'auto' setzen für automatische Erkennung.",
 	"kiroUpdateChecker.packageFormat.enumAuto": "Auto-Erkennung (empfohlen)",

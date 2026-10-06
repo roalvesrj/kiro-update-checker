@@ -3,7 +3,7 @@
 	"kiroUpdateChecker.config.title": "إعدادات Kiro Update Checker",
 	"kiroUpdateChecker.checkInterval.description": "الفاصل الزمني بالدقائق للتحقق من التحديثات. اضبط 0 لتعطيل التحقق التلقائي.",
 	"kiroUpdateChecker.enableOnStartup.description": "التحقق من التحديثات عند بدء التشغيل.",
-	"kiroUpdateChecker.autoDownload.description": "تنزيل وتثبيت الإصدارات الجديدة تلقائياً.",
+	"kiroUpdateChecker.autoDownload.description": "تنزيل الإصدارات الجديدة تلقائيًا عند توفرها.",
 	"kiroUpdateChecker.downloadFolder.description": "مجلد مخصص لتنزيل التحديثات. اتركه فارغاً لاستخدام مجلد التنزيلات الافتراضي.",
 	"kiroUpdateChecker.packageFormat.description": "تجاوز تنسيق الحزمة للتنزيلات. اضبط 'auto' للكشف التلقائي.",
 	"kiroUpdateChecker.packageFormat.enumAuto": "كشف تلقائي (موصى به)",

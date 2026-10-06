@@ -3,7 +3,7 @@
 	"kiroUpdateChecker.config.title": "Cấu Hình Kiro Update Checker",
 	"kiroUpdateChecker.checkInterval.description": "Khoảng thời gian (phút) để kiểm tra cập nhật. Đặt 0 để tắt kiểm tra tự động.",
 	"kiroUpdateChecker.enableOnStartup.description": "Kiểm tra cập nhật khi khởi động.",
-	"kiroUpdateChecker.autoDownload.description": "Tự động tải xuống và cài đặt phiên bản mới.",
+	"kiroUpdateChecker.autoDownload.description": "Tự động tải các phiên bản mới khi có sẵn.",
 	"kiroUpdateChecker.downloadFolder.description": "Thư mục tùy chỉnh để tải xuống. Để trống để sử dụng thư mục Tải xuống mặc định.",
 	"kiroUpdateChecker.packageFormat.description": "Ghi đè định dạng gói cho tải xuống. Đặt 'auto' để tự động phát hiện.",
 	"kiroUpdateChecker.packageFormat.enumAuto": "Tự động phát hiện (khuyến nghị)",

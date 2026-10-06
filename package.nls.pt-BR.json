@@ -3,7 +3,7 @@
 	"kiroUpdateChecker.config.title": "Configuração do Kiro Update Checker",
 	"kiroUpdateChecker.checkInterval.description": "Intervalo em minutos para verificar atualizações. Defina 0 para desativar.",
 	"kiroUpdateChecker.enableOnStartup.description": "Se deve verificar atualizações ao iniciar.",
-	"kiroUpdateChecker.autoDownload.description": "Se deve baixar e instalar novas versões automaticamente.",
+	"kiroUpdateChecker.autoDownload.description": "Baixar automaticamente novas versões quando disponíveis.",
 	"kiroUpdateChecker.downloadFolder.description": "Pasta personalizada para baixar atualizações. Deixe vazio para usar a pasta Downloads padrão.",
 	"kiroUpdateChecker.packageFormat.description": "Substituir o formato do pacote para downloads. Defina 'auto' para detecção automática.",
 	"kiroUpdateChecker.packageFormat.enumAuto": "Detecção automática (recomendado)",
