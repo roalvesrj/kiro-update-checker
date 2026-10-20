@@ -15,6 +15,18 @@ Automatically checks for new Kiro IDE releases using Kiro's own update feed. Int
 
 > **Disclaimer:** This is a community extension, not officially maintained by the Kiro team.
 
+## Installation
+
+**From Open VSX (recommended):** search for **Kiro Update Checker** in the Extensions view, or install it from [open-vsx.org](https://open-vsx.org/extension/roalvesrj/kiro-update-checker).
+
+**From a VSIX:** download `kiro-update-checker-*.vsix` from the [releases page](https://github.com/roalvesrj/kiro-update-checker/releases), then either run
+
+```
+kiro --install-extension kiro-update-checker-<version>.vsix
+```
+
+or use **Extensions → ... → Install from VSIX...** in Kiro.
+
 ## Features
 
 - Checks for new Kiro IDE releases on startup and at configurable intervals
@@ -25,7 +37,7 @@ Automatically checks for new Kiro IDE releases using Kiro's own update feed. Int
 - Manual check command: **Kiro: Check for Updates Now**
 - Dismiss notification for a specific version
 - **Release Notes button**: opens official Kiro changelog in your browser
-- **Cross-platform**: Windows (.exe), macOS (.dmg), Linux (.deb, .tar.gz)
+- **Cross-platform**: Windows (.exe), macOS (.dmg, .pkg), Linux (.deb, .tar.gz)
 - **15 languages**: adapts to your VS Code/Kiro interface language
 
 ## Screenshots
@@ -92,6 +104,11 @@ This extension contributes the following settings:
 > **Note:** version 0.3.0+ requires a Kiro build based on VS Code ≥ 1.93. Users on older Kiro builds will remain on 0.2.2.
 
 ## Release Notes
+
+### 0.4.1
+
+- **Fixed:** the **Release Notes** button now opens the correct changelog page. Kiro's downloads page became client-rendered and its static HTML is stale, so the link is resolved from the changelog index — exact release page when it exists, otherwise the minor-version page with the patch anchor (e.g. `/changelog/ide/1-4/#patch-1-4-5`)
+- The changelog link is resolved on demand when you click **Release Notes**
 
 ### 0.4.0
 

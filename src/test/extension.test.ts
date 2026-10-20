@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
-import { compareVersions, parseVersion, parseVersionFromHTML, parseChangelogUrlFromHTML } from '../version';
+import { compareVersions, parseChangelogSlugsFromIndex, parseVersion, parseVersionFromHTML, pickChangelogUrl } from '../version';
 import { buildDownloadUrl, detectPlatform, detectLinuxDistro } from '../platform';
 import { isAllowedHost, resolveSafeUrl, validateDownloadUrl } from '../urls';
 import { artifactFor, feedTargets, parseMetadataFeed } from '../feed';
@@ -66,8 +66,8 @@ const FEED_LINUX_X64 = {
 };
 
 // Snippet shaped after the real https://kiro.dev/downloads/ page (2026-09-28):
-// escaped currentVersion JSON blob, signed download links for every artifact and
-// the changelog anchor. Used as a golden fixture for the parser.
+// escaped currentVersion JSON blob and signed download links for every artifact.
+// Used as a golden fixture for the version parser (the page is now client-rendered).
 const REAL_PAGE_SNIPPET = `
 "availableChannel":"stable","versionHistory\":[],\"previousMinor\":null,\"previousMinors\":[]},\\"currentVersion\":\"1.1.70\",\"cliCommandHtml\"
 <a href="https://prod.download.desktop.kiro.dev/releases/stable/darwin-arm64/signed/1.1.70/kiro-ide-1.1.70-stable-darwin-arm64.dmg">macOS (Apple Silicon)</a>
@@ -223,23 +223,62 @@ suite('parseVersionFromHTML', () => {
 	});
 });
 
-suite('parseChangelogUrlFromHTML', () => {
-	test('extracts the release notes anchor from the real page snippet', () => {
-		assert.strictEqual(parseChangelogUrlFromHTML(REAL_PAGE_SNIPPET), 'https://kiro.dev/changelog/ide/1-1-70/');
+// Server-rendered hrefs from https://kiro.dev/changelog/ (2026-10-20):
+// releases are grouped by minor page, with some dedicated full-version pages.
+const CHANGELOG_INDEX_SNIPPET = `
+<a href="/changelog/ide/1-4/">1.4</a>
+<a href="/changelog/ide/1-3-11/">1.3.11</a>
+<a href="/changelog/ide/1-3/">1.3</a>
+<a href="/changelog/">Changelog</a>
+`;
+
+suite('changelog resolution', () => {
+	test('extracts ide slugs from the changelog index', () => {
+		assert.deepStrictEqual(
+			parseChangelogSlugsFromIndex(CHANGELOG_INDEX_SNIPPET),
+			['1-4', '1-3-11', '1-3']
+		);
 	});
 
-	test('prefers /changelog/ide/ over generic changelog links', () => {
-		const html = `<a href="/changelog/">Changelog</a><a href="/changelog/ide/1-1-70/">Release notes</a>`;
-		assert.strictEqual(parseChangelogUrlFromHTML(html), 'https://kiro.dev/changelog/ide/1-1-70/');
+	test('ignores anchors without an ide slug', () => {
+		assert.deepStrictEqual(parseChangelogSlugsFromIndex('<a href="/changelog/">Changelog</a>'), []);
 	});
 
-	test('returns null when no changelog link exists', () => {
-		assert.strictEqual(parseChangelogUrlFromHTML('<html></html>'), null);
+	test('prefers the exact release page when it exists (1.3.11)', () => {
+		const slugs = parseChangelogSlugsFromIndex(CHANGELOG_INDEX_SNIPPET);
+		assert.strictEqual(pickChangelogUrl('1.3.11', slugs), 'https://kiro.dev/changelog/ide/1-3-11/');
 	});
 
-	test('discards untrusted changelog links', () => {
-		assert.strictEqual(parseChangelogUrlFromHTML(`<a href="//evil.com/changelog/ide/1/">notes</a>`), null);
-		assert.strictEqual(parseChangelogUrlFromHTML(`<a href="https://evil.com/changelog/">notes</a>`), null);
+	test('falls back to the minor page with the patch anchor (1.4.5)', () => {
+		const slugs = parseChangelogSlugsFromIndex(CHANGELOG_INDEX_SNIPPET);
+		assert.strictEqual(pickChangelogUrl('1.4.5', slugs), 'https://kiro.dev/changelog/ide/1-4/#patch-1-4-5');
+	});
+
+	test('prefers the exact full-version page over the minor page', () => {
+		assert.strictEqual(pickChangelogUrl('1.4.5', ['1-4', '1-4-5']), 'https://kiro.dev/changelog/ide/1-4-5/');
+	});
+
+	test('uses the minor page without an anchor for x.y.0 releases', () => {
+		assert.strictEqual(pickChangelogUrl('1.4.0', ['1-4']), 'https://kiro.dev/changelog/ide/1-4/');
+	});
+
+	test('normalizes slug case', () => {
+		assert.deepStrictEqual(parseChangelogSlugsFromIndex('<a href="/changelog/ide/ABC/">x</a>'), ['abc']);
+	});
+
+	test('ignores fragments, query strings and single-quoted hrefs', () => {
+		const slugs = parseChangelogSlugsFromIndex(`<a href='/changelog/ide/1-4/#patch-1-4-5'>x</a><a href="/changelog/ide/1-3/?x=1">y</a>`);
+		assert.deepStrictEqual(slugs, ['1-4', '1-3']);
+	});
+
+	test('ignores prerelease/build metadata when building slugs', () => {
+		assert.strictEqual(pickChangelogUrl('1.4.5-beta', ['1-4']), 'https://kiro.dev/changelog/ide/1-4/#patch-1-4-5');
+		assert.strictEqual(pickChangelogUrl(' 1.4.5+build.7 ', ['1-4']), 'https://kiro.dev/changelog/ide/1-4/#patch-1-4-5');
+	});
+
+	test('returns null when the version is not listed or is invalid', () => {
+		assert.strictEqual(pickChangelogUrl('1.1.70', []), null);
+		assert.strictEqual(pickChangelogUrl('bad', ['bad']), null);
 	});
 });
 

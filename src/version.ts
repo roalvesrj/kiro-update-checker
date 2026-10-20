@@ -1,5 +1,4 @@
 import { log } from './log';
-import { resolveSafeUrl } from './urls';
 
 const STRICT_VERSION = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
 const JSON_VERSION = /(?:\\?")?currentVersion(?:\\?")?\s*:\s*(?:\\?")?(\d+\.\d+\.\d+)/;
@@ -100,32 +99,38 @@ export function parseVersionFromHTML(html: string, preferred?: PreferredPlatform
 	return null;
 }
 
-export function parseChangelogUrlFromHTML(html: string): string | null {
-	const anchors: string[] = [];
-	const pattern = /href="([^"]*changelog[^"]*)"/gi;
+export function parseChangelogSlugsFromIndex(html: string): string[] {
+	const slugs = new Set<string>();
+	const pattern = /href=["'][^"']*\/changelog\/ide\/([A-Za-z0-9._-]+)/gi;
 	let match: RegExpExecArray | null;
 	while ((match = pattern.exec(html)) !== null) {
-		anchors.push(match[1]);
+		slugs.add(match[1].toLowerCase());
 	}
-	if (anchors.length === 0) {
-		log('Could not extract changelog URL from HTML.');
+	return [...slugs];
+}
+
+export function pickChangelogUrl(version: string, slugs: string[]): string | null {
+	const parsed = parseVersion(version);
+	if (!parsed) {
 		return null;
 	}
 
-	const preferred = anchors.find(a => /\/changelog\/ide\//i.test(a)) ?? anchors[0];
-	let candidate: string;
-	if (/^https?:\/\//i.test(preferred)) {
-		candidate = preferred;
-	} else if (preferred.startsWith('//')) {
-		// Protocol-relative anchor: keep its true host so the allowlist can judge it.
-		candidate = `https:${preferred}`;
-	} else {
-		candidate = `https://kiro.dev${preferred.startsWith('/') ? '' : '/'}${preferred}`;
+	const [major, minor, patch] = parsed.core;
+	const fullSlug = `${major}-${minor}-${patch}`;
+	if (slugs.includes(fullSlug)) {
+		return `https://kiro.dev/changelog/ide/${fullSlug}/`;
 	}
-	const safe = resolveSafeUrl(candidate, 'https://kiro.dev/');
-	if (!safe) {
-		log(`Discarding untrusted changelog URL: ${candidate}`);
-		return null;
+
+	// Kiro groups most releases under a minor-version page (e.g. 1.4.5 ->
+	// /changelog/ide/1-4/#patch-1-4-5), while some releases keep a dedicated
+	// full-version page (e.g. 1.3.11). The .0 release is the minor page itself,
+	// so it gets no patch anchor.
+	const minorSlug = `${major}-${minor}`;
+	if (slugs.includes(minorSlug)) {
+		return patch > 0
+			? `https://kiro.dev/changelog/ide/${minorSlug}/#patch-${fullSlug}`
+			: `https://kiro.dev/changelog/ide/${minorSlug}/`;
 	}
-	return safe;
+
+	return null;
 }

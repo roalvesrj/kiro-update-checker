@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.4.1] - 2026-10-20
+### Fixed
+- **Release Notes link**: the Kiro downloads page is now client-rendered and its static HTML carries stale data, which made the button open an outdated changelog. The changelog URL is now resolved from the changelog index (`kiro.dev/changelog`): exact release page when available, otherwise the minor-version page with a `#patch-...` anchor, with a minor-page fallback
+- The changelog URL is resolved on demand when **Release Notes** is clicked (no extra request during update checks)
+
+### Changed
+- The downloads page is now used only as a fallback for version detection; parsing it for the changelog link was removed
+
 ## [0.4.0] - 2026-09-28
 ### Added
 - **Official update feed**: version detection now uses Kiro's own updater metadata endpoint (`{updateUrl}/{quality}/metadata-{target}-{quality}.json`, read from the local `product.json`), falling back to the downloads page HTML only if the feed is unavailable — the extension no longer depends on scraping the page

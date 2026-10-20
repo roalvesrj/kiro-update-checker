@@ -8,7 +8,7 @@ import { execFileSync } from 'child_process';
 import { IncomingMessage } from 'http';
 import { setLogSink, log } from './log';
 import { resolveSafeUrl, validateDownloadUrl } from './urls';
-import { compareVersions, parseVersionFromHTML, parseChangelogUrlFromHTML, PreferredPlatform } from './version';
+import { compareVersions, parseChangelogSlugsFromIndex, parseVersion, parseVersionFromHTML, pickChangelogUrl, PreferredPlatform } from './version';
 import { buildDownloadUrl, detectPlatform, PlatformInfo } from './platform';
 import { FeedInfo, feedTargets, parseMetadataFeed } from './feed';
 
@@ -27,6 +27,7 @@ const PAGE_TIMEOUT_MS = 15000;
 const DOWNLOAD_TIMEOUT_MS = 120000;
 const MIN_CHECK_INTERVAL_MINUTES = 5;
 const MAX_CHECK_INTERVAL_MINUTES = 24 * 60;
+const CHANGELOG_TIMEOUT_MS = 5000;
 const INSTALLER_VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
 let outputChannel: vscode.OutputChannel | null = null;
@@ -230,7 +231,7 @@ async function runCheckForUpdates(context: vscode.ExtensionContext, manualCheck:
 			return;
 		}
 
-		const { version: latestVersion, changelogUrl: latestChangelogUrl } = versionInfo;
+		const { version: latestVersion } = versionInfo;
 
 		log(`Latest Kiro version found: ${latestVersion}`);
 
@@ -282,12 +283,12 @@ async function runCheckForUpdates(context: vscode.ExtensionContext, manualCheck:
 
 			if (autoDownload && !vscode.workspace.isTrusted) {
 				log('Workspace is not trusted; falling back to manual download.');
-				await handleManualDownload(context, currentVersion, latestVersion, latestChangelogUrl);
+				await handleManualDownload(context, currentVersion, latestVersion);
 			} else if (autoDownload) {
 				log('Automatic download enabled.');
-				await handleAutoDownload(context, currentVersion, latestVersion, latestChangelogUrl);
+				await handleAutoDownload(context, currentVersion, latestVersion);
 			} else {
-				await handleManualDownload(context, currentVersion, latestVersion, latestChangelogUrl);
+				await handleManualDownload(context, currentVersion, latestVersion);
 			}
 		} else if (manualCheck) {
 			void vscode.window.showInformationMessage(
@@ -303,7 +304,7 @@ async function runCheckForUpdates(context: vscode.ExtensionContext, manualCheck:
 	}
 }
 
-async function handleManualDownload(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, changelogUrl: string): Promise<void> {
+async function handleManualDownload(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string): Promise<void> {
 	log('Mode: Manual download (open browser).');
 	const downloadBtn = vscode.l10n.t('Download Latest');
 	const releaseNotesBtn = vscode.l10n.t('Release Notes');
@@ -329,7 +330,7 @@ async function handleManualDownload(context: vscode.ExtensionContext, currentVer
 		await openExternalSafe(downloadUrl, 'download URL');
 	} else if (selection === releaseNotesBtn) {
 		log(`Opening changelog for version ${latestVersion}`);
-		await openExternalSafe(changelogUrl, 'changelog');
+		await openReleaseNotes(latestVersion);
 	} else if (selection === dismissBtn) {
 		log(`User dismissed notifications for version ${latestVersion}.`);
 		await context.globalState.update(STATE_KEY_DISMISSED_VERSION, latestVersion);
@@ -444,12 +445,12 @@ async function checkUrl(url: string): Promise<UrlCheckResult | null> {
 	});
 }
 
-async function handleAutoDownload(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, changelogUrl: string): Promise<void> {
+async function handleAutoDownload(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string): Promise<void> {
 	log('Mode: Auto-download.');
 	const info = detectCurrentPlatform();
 	if (!info) {
 		log('Unsupported platform for auto-download. Falling back to manual download.');
-		await handleManualDownload(context, currentVersion, latestVersion, changelogUrl);
+		await handleManualDownload(context, currentVersion, latestVersion);
 		return;
 	}
 
@@ -497,7 +498,7 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 		// anything else is treated as tampered/stale and replaced after a fresh download.
 		if (isRecordedInstaller(context, latestVersion, filePath)) {
 			log(`Installer already downloaded by this extension at ${filePath}.`);
-			showInstallNotification(context, currentVersion, latestVersion, filePath, changelogUrl);
+			showInstallNotification(context, currentVersion, latestVersion, filePath);
 			return;
 		}
 		log('Existing installer file was not recorded by this extension. Re-downloading.');
@@ -658,7 +659,7 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 							size: downloadedSize,
 							version: latestVersion
 						} satisfies InstallerRecord).then(undefined, err => log(`Failed to record installer: ${err}`));
-						showInstallNotification(context, currentVersion, latestVersion, filePath, changelogUrl);
+						showInstallNotification(context, currentVersion, latestVersion, filePath);
 						finish();
 					});
 
@@ -690,7 +691,7 @@ async function showDownloadError(latestVersion: string): Promise<void> {
 	);
 }
 
-function showInstallNotification(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, filePath: string, changelogUrl: string): void {
+function showInstallNotification(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, filePath: string): void {
 	const installBtn = vscode.l10n.t('Install Now');
 	const openFolderBtn = vscode.l10n.t('Open folder');
 	const releaseNotesBtn = vscode.l10n.t('Release Notes');
@@ -720,7 +721,7 @@ function showInstallNotification(context: vscode.ExtensionContext, currentVersio
 			}
 		} else if (selection === releaseNotesBtn) {
 			log(`Opening changelog for version ${latestVersion}`);
-			await openExternalSafe(changelogUrl, 'changelog');
+			await openReleaseNotes(latestVersion);
 		} else if (selection === dismissBtn) {
 			log(`User dismissed version ${latestVersion}.`);
 			await context.globalState.update(STATE_KEY_DISMISSED_VERSION, latestVersion);
@@ -768,18 +769,17 @@ function formatBytes(bytes: number): string {
 
 interface VersionInfo {
 	version: string;
-	changelogUrl: string;
 }
 
-function fetchJson(url: string, maxBytes: number, timeoutMs: number, depth: number = 0): Promise<unknown | null> {
+function fetchBody(url: string, maxBytes: number, timeoutMs: number, depth: number = 0): Promise<Buffer | null> {
 	const safeUrl = validateDownloadUrl(url);
 	if (!safeUrl) {
-		log(`Blocked untrusted feed URL: ${url}`);
+		log(`Blocked untrusted URL: ${url}`);
 		return Promise.resolve(null);
 	}
 	return new Promise((resolve) => {
 		let settled = false;
-		const done = (value: unknown | null) => {
+		const done = (value: Buffer | null) => {
 			if (settled) { return; }
 			settled = true;
 			resolve(value);
@@ -795,18 +795,26 @@ function fetchJson(url: string, maxBytes: number, timeoutMs: number, depth: numb
 				const redirectUrl = resolveSafeUrl(location, safeUrl);
 				request.removeAllListeners();
 				response.removeAllListeners();
+				// Swallow late errors from the abandoned socket.
+				request.on('error', () => { /* ignored */ });
+				response.on('error', () => { /* ignored */ });
 				response.destroy();
 				if (!redirectUrl || depth >= MAX_REDIRECTS) {
-					log('Blocked or excessive redirect while fetching feed.');
+					log('Blocked or excessive redirect while fetching.');
 					done(null);
 					return;
 				}
-				fetchJson(redirectUrl, maxBytes, timeoutMs, depth + 1).then(done);
+				fetchBody(redirectUrl, maxBytes, timeoutMs, depth + 1)
+					.then(done)
+					.catch(err => {
+						log(`Redirect fetch failed: ${err}`);
+						done(null);
+					});
 				return;
 			}
 
 			if (status !== 200) {
-				log(`Feed request returned status ${status}: ${safeUrl}`);
+				log(`Request returned status ${status}: ${safeUrl}`);
 				response.resume();
 				done(null);
 				return;
@@ -817,35 +825,40 @@ function fetchJson(url: string, maxBytes: number, timeoutMs: number, depth: numb
 			response.on('data', (chunk: Buffer) => {
 				total += chunk.length;
 				if (total > maxBytes) {
-					log('Feed response exceeded the size limit.');
+					log('Response exceeded the size limit.');
 					response.destroy();
 					done(null);
 					return;
 				}
 				chunks.push(chunk);
 			});
-			response.on('end', () => {
-				try {
-					done(JSON.parse(Buffer.concat(chunks).toString('utf8')));
-				} catch (err) {
-					log(`Failed to parse feed JSON: ${err}`);
-					done(null);
-				}
-			});
+			response.on('end', () => done(Buffer.concat(chunks)));
 			response.on('error', (err) => {
-				log(`Feed response error: ${err.message}`);
+				log(`Response error: ${err.message}`);
 				done(null);
 			});
 		});
 		request.on('error', (err) => {
-			log(`Feed request error: ${err.message}`);
+			log(`Request error: ${err.message}`);
 			done(null);
 		});
 		request.on('timeout', () => {
 			request.destroy();
-			log(`Feed request timed out (${timeoutMs / 1000} seconds).`);
+			log(`Request timed out (${timeoutMs / 1000} seconds).`);
 			done(null);
 		});
+	});
+}
+
+function fetchJson(url: string, maxBytes: number, timeoutMs: number): Promise<unknown | null> {
+	return fetchBody(url, maxBytes, timeoutMs).then(body => {
+		if (!body) { return null; }
+		try {
+			return JSON.parse(body.toString('utf8')) as unknown;
+		} catch (err) {
+			log(`Failed to parse JSON: ${err}`);
+			return null;
+		}
 	});
 }
 
@@ -868,9 +881,35 @@ async function fetchVersionFeed(targets: string[], updateUrl: string, quality: s
 	return null;
 }
 
-function fallbackChangelogUrl(version: string): string {
-	const url = `https://kiro.dev/changelog/ide/${version.replace(/\./g, '-')}/`;
-	return validateDownloadUrl(url) ?? FALLBACK_CHANGELOG_URL;
+async function resolveChangelogUrl(version: string): Promise<string> {
+	const indexUrl = 'https://kiro.dev/changelog/';
+	const body = await fetchBody(indexUrl, MAX_PAGE_SIZE_BYTES, CHANGELOG_TIMEOUT_MS);
+	if (body) {
+		const slugs = parseChangelogSlugsFromIndex(body.toString('utf8'));
+		const picked = pickChangelogUrl(version, slugs);
+		if (picked) {
+			const safe = validateDownloadUrl(picked);
+			if (safe) {
+				log(`Resolved changelog URL: ${safe}`);
+				return safe;
+			}
+		}
+	}
+
+	// The index may be unavailable or not list the release; minor-version pages
+	// exist for all release lines (e.g. 1-4, 1-0, 0-12).
+	const parsed = parseVersion(version);
+	const minorSlug = parsed ? `${parsed.core[0]}-${parsed.core[1]}` : null;
+	const fallback = minorSlug ? pickChangelogUrl(version, [minorSlug]) : null;
+	const safeFallback = fallback ? validateDownloadUrl(fallback) : null;
+	log(`Using changelog fallback for ${version}: ${safeFallback ?? FALLBACK_CHANGELOG_URL}`);
+	return safeFallback ?? FALLBACK_CHANGELOG_URL;
+}
+
+async function openReleaseNotes(version: string): Promise<void> {
+	log(`Opening changelog for version ${version}`);
+	const url = await resolveChangelogUrl(version);
+	await openExternalSafe(url, 'changelog');
 }
 
 async function fetchLatestVersion(): Promise<VersionInfo | null> {
@@ -878,33 +917,26 @@ async function fetchLatestVersion(): Promise<VersionInfo | null> {
 	const platform = detectCurrentPlatform();
 	const targets = platform ? feedTargets(platform.platform, platform.arch, product.installTarget) : [];
 
-	const [feed, fromHtml] = await Promise.all([
-		fetchVersionFeed(targets, product.updateUrl, product.quality),
-		fetchVersionFromHtml(platform ?? undefined)
-	]);
-
+	const feed = await fetchVersionFeed(targets, product.updateUrl, product.quality);
 	if (feed) {
-		if (fromHtml && fromHtml.version !== feed.version) {
-			log(`Version mismatch: feed=${feed.version}, page=${fromHtml.version}; trusting the feed.`);
-		}
-		return {
-			version: feed.version,
-			changelogUrl: fromHtml?.changelogUrl ?? fallbackChangelogUrl(feed.version)
-		};
+		return { version: feed.version };
 	}
 
+	// The downloads page is client-rendered and its static data can be stale;
+	// it is only used when the official feed is unavailable.
+	const fromHtml = await fetchVersionFromHtml(platform ?? undefined);
 	if (fromHtml) {
 		log('Version feed unavailable; using the downloads page result.');
-		return fromHtml;
+		return { version: fromHtml };
 	}
 
 	return null;
 }
 
-function fetchVersionFromHtml(platformHint?: PreferredPlatform): Promise<VersionInfo | null> {
+function fetchVersionFromHtml(platformHint?: PreferredPlatform): Promise<string | null> {
 	return new Promise((resolve) => {
 		let settled = false;
-		const done = (value: VersionInfo | null) => {
+		const done = (value: string | null) => {
 			if (settled) { return; }
 			settled = true;
 			resolve(value);
@@ -927,6 +959,9 @@ function fetchVersionFromHtml(platformHint?: PreferredPlatform): Promise<Version
 
 					request.removeAllListeners();
 					response.removeAllListeners();
+					// Swallow late errors from the abandoned socket.
+					request.on('error', () => { /* ignored */ });
+					response.on('error', () => { /* ignored */ });
 					response.destroy();
 
 					if (!redirectUrl) {
@@ -963,7 +998,7 @@ function fetchVersionFromHtml(platformHint?: PreferredPlatform): Promise<Version
 	});
 }
 
-function handleResponse(response: IncomingMessage, platformHint: PreferredPlatform | undefined, resolve: (value: VersionInfo | null) => void) {
+function handleResponse(response: IncomingMessage, platformHint: PreferredPlatform | undefined, resolve: (value: string | null) => void) {
 	const chunks: Buffer[] = [];
 	let totalBytes = 0;
 	let capped = false;
@@ -989,13 +1024,7 @@ function handleResponse(response: IncomingMessage, platformHint: PreferredPlatfo
 
 		if (version) {
 			log(`Extracted version from page: ${version}`);
-			const changelogUrl = parseChangelogUrlFromHTML(html);
-			if (changelogUrl) {
-				log(`Extracted changelog URL: ${changelogUrl}`);
-			} else {
-				log('Could not extract changelog URL from HTML, using generic fallback.');
-			}
-			resolve({ version, changelogUrl: changelogUrl || FALLBACK_CHANGELOG_URL });
+			resolve(version);
 		} else {
 			const digest = crypto.createHash('sha256').update(html).digest('hex').slice(0, 16);
 			log(`Could not extract version from HTML (size: ${totalBytes} bytes, sha256: ${digest}).`);
