@@ -4,13 +4,13 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as crypto from 'crypto';
-import { execFileSync } from 'child_process';
+import { execFileSync, spawn, type ChildProcess } from 'child_process';
 import { IncomingMessage } from 'http';
 import { setLogSink, log } from './log';
 import { resolveSafeUrl, validateDownloadUrl } from './urls';
 import { compareVersions, parseChangelogSlugsFromIndex, parseVersion, parseVersionFromHTML, pickChangelogUrl, PreferredPlatform } from './version';
 import { buildDownloadUrl, detectPlatform, PlatformInfo } from './platform';
-import { FeedInfo, feedTargets, parseMetadataFeed } from './feed';
+import { artifactFor, FeedArtifact, FeedInfo, feedTargets, parseMetadataFeed } from './feed';
 
 const DOWNLOADS_PAGE_URL = 'https://kiro.dev/downloads/';
 const FALLBACK_CHANGELOG_URL = 'https://kiro.dev/changelog/';
@@ -18,6 +18,8 @@ const DEFAULT_UPDATE_URL = 'https://prod.download.desktop.kiro.dev';
 const DEFAULT_QUALITY = 'stable';
 const STATE_KEY_DISMISSED_VERSION = 'kiroUpdateChecker.dismissedVersion';
 const STATE_KEY_INSTALLER_PREFIX = 'kiroUpdateChecker.installer.';
+const STATE_KEY_PENDING_UPDATE = 'kiroUpdateChecker.pendingUpdate';
+const STATE_KEY_PENDING_FLAG = 'kiroUpdateChecker.pendingFlagPath';
 const MAX_PAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const MAX_FEED_SIZE_BYTES = 1024 * 1024;
 const MAX_INSTALLER_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
@@ -29,11 +31,15 @@ const MIN_CHECK_INTERVAL_MINUTES = 5;
 const MAX_CHECK_INTERVAL_MINUTES = 24 * 60;
 const CHANGELOG_TIMEOUT_MS = 5000;
 const INSTALLER_VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+const QUALITY_PATTERN = /^[A-Za-z0-9._-]+$/;
 
 let outputChannel: vscode.OutputChannel | null = null;
 let extensionVersion = '';
 let checkInFlight: Promise<void> | null = null;
 let intervalHandle: NodeJS.Timeout | null = null;
+let windowsUpdateFlagPath: string | null = null;
+let restartRequested = false;
+let extensionContext: vscode.ExtensionContext | null = null;
 
 function userAgentStr(): string {
 	return `KiroUpdateChecker/${extensionVersion}`;
@@ -66,7 +72,7 @@ function readKiroProductInfo(): KiroProductInfo {
 			updateUrl: typeof json.updateUrl === 'string' && json.updateUrl.trim()
 				? json.updateUrl.trim()
 				: defaults.updateUrl,
-			quality: typeof json.quality === 'string' && json.quality.trim()
+			quality: typeof json.quality === 'string' && QUALITY_PATTERN.test(json.quality.trim())
 				? json.quality.trim()
 				: defaults.quality,
 			installTarget: typeof json.target === 'string' ? json.target.trim() : ''
@@ -75,6 +81,54 @@ function readKiroProductInfo(): KiroProductInfo {
 		log(`Failed to read product.json: ${e}`);
 	}
 	return defaults;
+}
+
+interface UpdatePreferences {
+	autoDownload: boolean;
+	autoInstall: boolean;
+}
+
+function readUpdatePreferences(): UpdatePreferences {
+	const config = vscode.workspace.getConfiguration('kiroUpdateChecker');
+	const objectInspect = config.inspect<{ download?: unknown; install?: unknown }>('update');
+	const objectIsSet = !!objectInspect && objectInspect.globalValue !== undefined;
+
+	if (objectIsSet) {
+		const value = config.get<{ download?: unknown; install?: unknown }>('update') ?? {};
+		const autoDownload = value.download === true;
+		if (value.install === true && !autoDownload) {
+			log('The "install" option requires "download"; ignoring it.');
+		}
+		return { autoDownload, autoInstall: autoDownload && value.install === true };
+	}
+
+	// Legacy flat settings (pre-0.4.0); migrated on activation but still honored.
+	const autoDownload = config.get<boolean>('autoDownload', false);
+	const autoInstallSetting = config.get<boolean>('autoInstall', false);
+	if (autoInstallSetting && !autoDownload) {
+		log('autoInstall requires autoDownload; ignoring it.');
+	}
+	return { autoDownload, autoInstall: autoDownload && autoInstallSetting };
+}
+
+async function migrateLegacyUpdateSettings(): Promise<void> {
+	const config = vscode.workspace.getConfiguration('kiroUpdateChecker');
+	const objectInspect = config.inspect('update');
+	if (objectInspect && objectInspect.globalValue !== undefined) {
+		return;
+	}
+	const legacyDownload = config.inspect<boolean>('autoDownload')?.globalValue;
+	const legacyInstall = config.inspect<boolean>('autoInstall')?.globalValue;
+	if (legacyDownload === undefined && legacyInstall === undefined) {
+		return;
+	}
+	await config.update('update', {
+		download: legacyDownload === true,
+		install: legacyDownload === true && legacyInstall === true
+	}, vscode.ConfigurationTarget.Global);
+	await config.update('autoDownload', undefined, vscode.ConfigurationTarget.Global);
+	await config.update('autoInstall', undefined, vscode.ConfigurationTarget.Global);
+	log(`Migrated legacy update settings (download=${legacyDownload === true}, install=${legacyInstall === true}).`);
 }
 
 function isKiro(): boolean {
@@ -109,10 +163,19 @@ interface InstallerRecord {
 	filePath: string;
 	size: number;
 	version: string;
+	sha256?: string;
+}
+
+interface PendingUpdate {
+	version: string;
+	platform: string;
+	stagedAt: number;
 }
 
 export function activate(context: vscode.ExtensionContext) {
 	extensionVersion = context.extension.packageJSON.version || '0.1.0';
+	extensionContext = context;
+	windowsUpdateFlagPath = context.globalState.get<string>(STATE_KEY_PENDING_FLAG) ?? null;
 
 	outputChannel = vscode.window.createOutputChannel('Kiro Update Checker');
 	context.subscriptions.push(outputChannel);
@@ -133,6 +196,23 @@ export function activate(context: vscode.ExtensionContext) {
 	}
 
 	log('Kiro IDE detected. Extension is active.');
+
+	void migrateLegacyUpdateSettings().catch(err => log(`Settings migration failed: ${err}`));
+
+	const pendingUpdate = context.globalState.get<PendingUpdate>(STATE_KEY_PENDING_UPDATE);
+	if (pendingUpdate) {
+		const current = getCurrentKiroVersion();
+		const applied = current ? compareVersions(current, pendingUpdate.version) >= 0 : false;
+		void context.globalState.update(STATE_KEY_PENDING_UPDATE, undefined);
+		if (!applied) {
+			// The previous staged update did not complete; allow the next automatic
+			// check to offer it again instead of staying dismissed forever.
+			void context.globalState.update(STATE_KEY_DISMISSED_VERSION, undefined);
+			log(`Previous staged update to ${pendingUpdate.version} did not complete; it will be retried.`);
+		} else {
+			log(`Cleared pending update state (now on ${current}).`);
+		}
+	}
 
 	context.subscriptions.push(vscode.commands.registerCommand('kiro-update-checker.checkNow', () => {
 		void checkForUpdates(context, true);
@@ -278,15 +358,16 @@ async function runCheckForUpdates(context: vscode.ExtensionContext, manualCheck:
 				return;
 			}
 
-			const config = vscode.workspace.getConfiguration('kiroUpdateChecker');
-			const autoDownload = config.get<boolean>('autoDownload', false);
+			const { autoDownload, autoInstall } = readUpdatePreferences();
 
 			if (autoDownload && !vscode.workspace.isTrusted) {
 				log('Workspace is not trusted; falling back to manual download.');
 				await handleManualDownload(context, currentVersion, latestVersion);
 			} else if (autoDownload) {
-				log('Automatic download enabled.');
-				await handleAutoDownload(context, currentVersion, latestVersion);
+				log(autoInstall
+					? 'Automatic download and install enabled.'
+					: 'Automatic download enabled.');
+				await handleAutoDownload(context, currentVersion, latestVersion, versionInfo.feedArtifacts, autoInstall);
 			} else {
 				await handleManualDownload(context, currentVersion, latestVersion);
 			}
@@ -386,6 +467,12 @@ function defaultDownloadFolder(): string {
 	return path.join(os.homedir(), 'Downloads');
 }
 
+function getUpdateStateDir(): string {
+	const dir = path.join(os.tmpdir(), 'kiro-update-checker');
+	fs.mkdirSync(dir, { recursive: true });
+	return dir;
+}
+
 function resolveWithin(folder: string, fileName: string): string | null {
 	if (path.basename(fileName) !== fileName) {
 		return null;
@@ -398,13 +485,40 @@ function resolveWithin(folder: string, fileName: string): string | null {
 	return target;
 }
 
-function isRecordedInstaller(context: vscode.ExtensionContext, version: string, filePath: string): boolean {
+function computeFileSha256(filePath: string): Promise<string | null> {
+	return new Promise((resolve) => {
+		const hash = crypto.createHash('sha256');
+		const stream = fs.createReadStream(filePath);
+		stream.on('data', chunk => hash.update(chunk));
+		stream.on('end', () => resolve(hash.digest('hex')));
+		stream.on('error', err => {
+			log(`Failed to hash ${filePath}: ${err}`);
+			resolve(null);
+		});
+	});
+}
+
+async function isRecordedInstaller(context: vscode.ExtensionContext, version: string, filePath: string, requireHash: boolean = false): Promise<boolean> {
 	const record = context.globalState.get<InstallerRecord>(`${STATE_KEY_INSTALLER_PREFIX}${version}`);
 	if (!record || record.filePath !== filePath || !Number.isFinite(record.size) || record.size <= 0) {
 		return false;
 	}
+	if (requireHash && !record.sha256) {
+		log('Installer record has no checksum; refusing to trust it.');
+		return false;
+	}
 	try {
-		return fs.statSync(filePath).size === record.size;
+		if (fs.statSync(filePath).size !== record.size) {
+			return false;
+		}
+		if (record.sha256) {
+			const actual = await computeFileSha256(filePath);
+			if (!actual || actual !== record.sha256) {
+				log('Installer hash mismatch; refusing to trust the file.');
+				return false;
+			}
+		}
+		return true;
 	} catch {
 		return false;
 	}
@@ -445,7 +559,45 @@ async function checkUrl(url: string): Promise<UrlCheckResult | null> {
 	});
 }
 
-async function handleAutoDownload(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string): Promise<void> {
+interface DownloadTarget {
+	url: string;
+	ext: string;
+	silent: boolean;
+}
+
+function selectDownloadTarget(info: PlatformInfo, version: string, feedArtifacts: FeedArtifact[]): DownloadTarget | null {
+	if (info.platform === 'win32') {
+		const fromFeed = artifactFor(feedArtifacts, 'exe', version);
+		return { url: fromFeed?.url ?? buildDownloadUrl(version, info), ext: 'exe', silent: true };
+	}
+	if (info.platform === 'darwin') {
+		// The silent updater consumes the .zip artifact from the feed (same as Squirrel.Mac).
+		const zip = artifactFor(feedArtifacts, 'zip', version);
+		if (zip) {
+			return { url: zip.url, ext: 'zip', silent: true };
+		}
+		log('No updater .zip in the feed for macOS; silent update unavailable.');
+		return null;
+	}
+	if (info.platform === 'linux') {
+		if (info.ext === 'tar.gz') {
+			const tarGz = artifactFor(feedArtifacts, 'tar.gz', version);
+			if (tarGz) {
+				return { url: tarGz.url, ext: 'tar.gz', silent: false };
+			}
+		}
+		return { url: buildDownloadUrl(version, info), ext: info.ext, silent: false };
+	}
+	return null;
+}
+
+async function handleAutoDownload(
+	context: vscode.ExtensionContext,
+	currentVersion: string,
+	latestVersion: string,
+	feedArtifacts: FeedArtifact[],
+	autoInstall: boolean
+): Promise<void> {
 	log('Mode: Auto-download.');
 	const info = detectCurrentPlatform();
 	if (!info) {
@@ -454,17 +606,23 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 		return;
 	}
 
-	const downloadUrl = buildDownloadUrl(latestVersion, info);
-	const safeDownloadUrl = validateDownloadUrl(downloadUrl);
+	const target = selectDownloadTarget(info, latestVersion, feedArtifacts);
+	if (!target) {
+		log('No suitable downloadable artifact for this platform. Falling back to manual download.');
+		await handleManualDownload(context, currentVersion, latestVersion);
+		return;
+	}
+
+	const safeDownloadUrl = validateDownloadUrl(target.url);
 	if (!safeDownloadUrl) {
-		log(`Blocked download to untrusted URL: ${downloadUrl}`);
+		log(`Blocked download to untrusted URL: ${target.url}`);
 		await showDownloadError(latestVersion);
 		return;
 	}
 
 	const check = await checkUrl(safeDownloadUrl);
 	if (!check || !check.status || check.status < 200 || check.status >= 300) {
-		log(`Download URL returned ${check ? check.status : 'no response'} for: ${downloadUrl}`);
+		log(`Download URL returned ${check ? check.status : 'no response'} for: ${target.url}`);
 		const openPageBtn = vscode.l10n.t('Open Downloads Page');
 		const selection = await vscode.window.showErrorMessage(
 			vscode.l10n.t('❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.', info.ext),
@@ -477,7 +635,7 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 	}
 
 	const downloadFolder = getDownloadFolder();
-	const fileName = `kiro-ide-${latestVersion}-stable-${info.platform}-${info.arch}.${info.ext}`;
+	const fileName = `kiro-ide-${latestVersion}-stable-${info.platform}-${info.arch}.${target.ext}`;
 
 	if (!INSTALLER_VERSION_PATTERN.test(latestVersion)) {
 		log(`Refusing install for unexpected version format: ${latestVersion}`);
@@ -496,15 +654,15 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 	if (fs.existsSync(filePath)) {
 		// Only trust a file this extension downloaded and recorded for this version;
 		// anything else is treated as tampered/stale and replaced after a fresh download.
-		if (isRecordedInstaller(context, latestVersion, filePath)) {
+		if (await isRecordedInstaller(context, latestVersion, filePath)) {
 			log(`Installer already downloaded by this extension at ${filePath}.`);
-			showInstallNotification(context, currentVersion, latestVersion, filePath);
+			await handleDownloadedInstaller(context, info, currentVersion, latestVersion, filePath, autoInstall, target.silent);
 			return;
 		}
 		log('Existing installer file was not recorded by this extension. Re-downloading.');
 	}
 
-	log(`Downloading installer from ${downloadUrl} to ${filePath}...`);
+	log(`Downloading installer from ${target.url} to ${filePath}...`);
 
 	await vscode.window.withProgress(
 		{
@@ -600,6 +758,7 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 					const parsedLength = parseInt(response.headers['content-length'] || '', 10);
 					const totalSize = Number.isFinite(parsedLength) && parsedLength > 0 ? parsedLength : 0;
 					let downloadedSize = 0;
+					const fileHash = crypto.createHash('sha256');
 
 					cleanupPart();
 					try {
@@ -613,6 +772,7 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 					response.on('data', (chunk: Buffer) => {
 						if (attemptDone || settled) { return; }
 						downloadedSize += chunk.length;
+						fileHash.update(chunk);
 
 						if (downloadedSize > MAX_INSTALLER_SIZE_BYTES) {
 							response.destroy();
@@ -654,12 +814,20 @@ async function handleAutoDownload(context: vscode.ExtensionContext, currentVersi
 							return;
 						}
 						log(`Download completed: ${filePath} (${formatBytes(downloadedSize)})`);
-						void context.globalState.update(`${STATE_KEY_INSTALLER_PREFIX}${latestVersion}`, {
+						const record: InstallerRecord = {
 							filePath,
 							size: downloadedSize,
-							version: latestVersion
-						} satisfies InstallerRecord).then(undefined, err => log(`Failed to record installer: ${err}`));
-						showInstallNotification(context, currentVersion, latestVersion, filePath);
+							version: latestVersion,
+							sha256: fileHash.digest('hex')
+						};
+						void context.globalState.update(`${STATE_KEY_INSTALLER_PREFIX}${latestVersion}`, record)
+							.then(
+								() => handleDownloadedInstaller(context, info, currentVersion, latestVersion, filePath, autoInstall, target.silent),
+								err => {
+									log(`Failed to record installer: ${err}`);
+									return handleDownloadedInstaller(context, info, currentVersion, latestVersion, filePath, autoInstall, target.silent);
+								}
+							);
 						finish();
 					});
 
@@ -691,7 +859,80 @@ async function showDownloadError(latestVersion: string): Promise<void> {
 	);
 }
 
-function showInstallNotification(context: vscode.ExtensionContext, currentVersion: string, latestVersion: string, filePath: string): void {
+type StageResult = 'ok' | 'untrusted' | 'failed';
+
+async function stageSilentUpdate(
+	context: vscode.ExtensionContext,
+	info: PlatformInfo,
+	latestVersion: string,
+	filePath: string
+): Promise<StageResult> {
+	const pending = context.globalState.get<PendingUpdate>(STATE_KEY_PENDING_UPDATE);
+	if (pending?.version === latestVersion) {
+		log(`Update ${latestVersion} is already staged; not applying it again.`);
+		return 'ok';
+	}
+
+	const trusted = await isRecordedInstaller(context, latestVersion, filePath, true);
+	if (!trusted) {
+		log('Installer failed integrity checks; refusing to apply it silently.');
+		return 'untrusted';
+	}
+
+	const applied = await applySilentUpdate(info, latestVersion, filePath);
+	if (!applied) {
+		return 'failed';
+	}
+
+	await context.globalState.update(STATE_KEY_PENDING_UPDATE, {
+		version: latestVersion,
+		platform: info.platform,
+		stagedAt: Date.now()
+	} satisfies PendingUpdate);
+
+	if (process.platform === 'win32' && windowsUpdateFlagPath) {
+		await context.globalState.update(STATE_KEY_PENDING_FLAG, windowsUpdateFlagPath);
+	}
+
+	return 'ok';
+}
+
+async function handleDownloadedInstaller(
+	context: vscode.ExtensionContext,
+	info: PlatformInfo,
+	currentVersion: string,
+	latestVersion: string,
+	filePath: string,
+	autoInstall: boolean,
+	silentCapable: boolean
+): Promise<void> {
+	if (autoInstall && silentCapable) {
+		log('Auto-install enabled; starting silent update.');
+		const staged = await stageSilentUpdate(context, info, latestVersion, filePath);
+		if (staged === 'ok') {
+			showRestartNotification(context, latestVersion, filePath);
+			return;
+		}
+		if (staged === 'untrusted') {
+			await showIntegrityError(filePath);
+			return;
+		}
+		log('Silent update could not be started; offering manual install.');
+		await showAutomaticUpdateError(info, filePath);
+		return;
+	}
+
+	showInstallNotification(context, info, currentVersion, latestVersion, filePath, silentCapable);
+}
+
+function showInstallNotification(
+	context: vscode.ExtensionContext,
+	info: PlatformInfo,
+	currentVersion: string,
+	latestVersion: string,
+	filePath: string,
+	silentCapable: boolean
+): void {
 	const installBtn = vscode.l10n.t('Install Now');
 	const openFolderBtn = vscode.l10n.t('Open folder');
 	const releaseNotesBtn = vscode.l10n.t('Release Notes');
@@ -706,8 +947,20 @@ function showInstallNotification(context: vscode.ExtensionContext, currentVersio
 		dismissBtn
 	).then(async selection => {
 		if (selection === installBtn) {
-			// Hand the downloaded installer to the system handler (no terminal window).
-			await openInstallerFile(filePath);
+			if (silentCapable) {
+				log(`Starting silent update for ${latestVersion}...`);
+				const staged = await stageSilentUpdate(context, info, latestVersion, filePath);
+				if (staged === 'ok') {
+					showRestartNotification(context, latestVersion, filePath);
+				} else if (staged === 'untrusted') {
+					await showIntegrityError(filePath);
+				} else {
+					await showAutomaticUpdateError(info, filePath);
+				}
+			} else {
+				// Linux: hand the downloaded package to the system handler (no terminal).
+				await openInstallerFile(filePath);
+			}
 		} else if (selection === openFolderBtn) {
 			const folderPath = path.dirname(filePath);
 			log(`Opening folder: ${folderPath}`);
@@ -740,6 +993,324 @@ async function openInstallerFile(filePath: string): Promise<void> {
 	}
 }
 
+const WINDOWS_RELAUNCH_TASK = 'KUC-Relaunch';
+
+function scheduleWindowsRelaunch(): void {
+	try {
+		const exe = process.execPath;
+		const scriptPath = path.join(getUpdateStateDir(), 'relaunch.ps1');
+		const script = [
+			'param([string]$ExePath)',
+			'$deadline = (Get-Date).AddMinutes(30)',
+			'while ((Get-Date) -lt $deadline) {',
+			"  $p = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -like 'kiro*' }",
+			'  if (-not $p) { break }',
+			'  Start-Sleep -Seconds 1',
+			'}',
+			"$p = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -like 'kiro*' }",
+			'if (-not $p) { Start-Process -FilePath $ExePath }',
+			`schtasks /Delete /TN '${WINDOWS_RELAUNCH_TASK}' /F | Out-Null`,
+			'Remove-Item -LiteralPath $MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyContinue'
+		].join('\r\n') + '\r\n';
+		fs.writeFileSync(scriptPath, script, 'utf8');
+
+		// A child process from the extension host is killed when Kiro quits (the
+		// Electron job object closes), so the watcher is launched by Task Scheduler
+		// instead, which survives the shutdown.
+		const start = new Date(Date.now() + 2 * 60 * 1000);
+		const startTime = `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`;
+		const taskCommand = `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "${scriptPath}" -ExePath "${exe}"`;
+		execFileSync('schtasks.exe', ['/Create', '/TN', WINDOWS_RELAUNCH_TASK, '/TR', taskCommand, '/SC', 'ONCE', '/ST', startTime, '/F'], {
+			timeout: 10000,
+			windowsHide: true,
+			stdio: 'ignore'
+		});
+		execFileSync('schtasks.exe', ['/Run', '/TN', WINDOWS_RELAUNCH_TASK], {
+			timeout: 10000,
+			windowsHide: true,
+			stdio: 'ignore'
+		});
+		log('Relaunch task scheduled; Kiro will start again after the update completes.');
+	} catch (err) {
+		log(`Failed to schedule the relaunch task: ${err}`);
+	}
+}
+
+function showRestartNotification(context: vscode.ExtensionContext, latestVersion: string, filePath: string): void {
+	const restartBtn = vscode.l10n.t('Restart to Update');
+	const releaseNotesBtn = vscode.l10n.t('Release Notes');
+
+	void vscode.window.showInformationMessage(
+		vscode.l10n.t('🔄 Kiro {0} is ready. Restart to update.', latestVersion),
+		{ modal: false },
+		restartBtn,
+		releaseNotesBtn
+	).then(async selection => {
+		if (selection === restartBtn) {
+			log('Restart requested; quitting to finish the update...');
+			await context.globalState.update(STATE_KEY_DISMISSED_VERSION, latestVersion);
+			// The update flag is removed in deactivate(), but only when a restart was
+			// actually requested (deactivate also runs on host reloads).
+			if (process.platform === 'win32') {
+				restartRequested = true;
+				scheduleWindowsRelaunch();
+			}
+			try {
+				await vscode.commands.executeCommand('workbench.action.quit');
+				// If the quit was vetoed the extension host keeps running; reset the
+				// marker so a later reload does not delete the update flag.
+				setTimeout(() => {
+					if (restartRequested) {
+						restartRequested = false;
+						log('Quit did not proceed; the update flag was kept for the next attempt.');
+					}
+				}, 5000);
+			} catch (err) {
+				log(`Failed to quit the application: ${err}`);
+				void vscode.window.showWarningMessage(
+					vscode.l10n.t('🔄 Kiro {0} is ready. Restart to update.', latestVersion)
+				);
+			}
+		} else if (selection === releaseNotesBtn) {
+			log(`Opening changelog for version ${latestVersion}`);
+			await openReleaseNotes(latestVersion);
+		}
+	}, err => log(`Restart notification failed: ${err}`));
+}
+
+async function showAutomaticUpdateError(info: PlatformInfo, filePath: string): Promise<void> {
+	await vscode.window.showErrorMessage(
+		vscode.l10n.t('❌ Kiro Update Checker: Automatic update failed. Please install manually.')
+	);
+	if (info.platform === 'darwin') {
+		// Opening a .zip with the system handler is not useful for installing.
+		await openExternalSafe(DOWNLOADS_PAGE_URL, 'downloads page');
+	} else {
+		await openInstallerFile(filePath);
+	}
+}
+
+async function showIntegrityError(filePath: string): Promise<void> {
+	log(`Refusing to run the installer at ${filePath}: integrity check failed.`);
+	try {
+		fs.unlinkSync(filePath);
+	} catch { /* ignore */ }
+	await vscode.window.showErrorMessage(
+		vscode.l10n.t('❌ Kiro Update Checker: Automatic update failed. Please install manually.')
+	);
+	await openExternalSafe(DOWNLOADS_PAGE_URL, 'downloads page');
+}
+
+function applySilentUpdate(info: PlatformInfo, version: string, filePath: string): Promise<boolean> {
+	if (info.platform === 'win32') {
+		return applySilentUpdateWindows(version, filePath);
+	}
+	if (info.platform === 'darwin') {
+		return applySilentUpdateMacOS(filePath);
+	}
+	return Promise.resolve(false);
+}
+
+function delayMs(ms: number): Promise<void> {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+const SPAWN_RETRY_DELAYS_MS = [1000, 3000, 7000, 15000, 30000];
+const SPAWN_ATTEMPT_TIMEOUT_MS = 10000;
+
+interface SpawnOutcome {
+	child?: ChildProcess;
+	error?: NodeJS.ErrnoException;
+}
+
+async function spawnDetachedInstaller(installerPath: string, args: string[], extraEnv?: NodeJS.ProcessEnv): Promise<boolean> {
+	for (let attempt = 0; ; attempt++) {
+		// Spawn failures arrive as an asynchronous 'error' event; only treat the
+		// process as started after the 'spawn' event fires.
+		const outcome = await Promise.race<SpawnOutcome>([
+			new Promise<SpawnOutcome>((resolve) => {
+				let child: ChildProcess;
+				try {
+					child = spawn(installerPath, args, {
+						detached: true,
+						stdio: 'ignore',
+						windowsVerbatimArguments: true,
+						env: extraEnv ? { ...process.env, ...extraEnv } : process.env
+					});
+				} catch (err) {
+					resolve({ error: err as NodeJS.ErrnoException });
+					return;
+				}
+				child.once('spawn', () => resolve({ child }));
+				child.once('error', (err) => resolve({ error: err }));
+			}),
+			delayMs(SPAWN_ATTEMPT_TIMEOUT_MS).then<SpawnOutcome>(() => ({
+				error: { code: 'ETIMEDOUT', message: 'spawn did not settle' } as NodeJS.ErrnoException
+			}))
+		]);
+
+		if (outcome.child) {
+			outcome.child.on('error', err => log(`Installer process error: ${err}`));
+			outcome.child.unref();
+			log(`Installer started (pid ${outcome.child.pid ?? 'unknown'}).`);
+			return true;
+		}
+
+		const code = outcome.error?.code;
+		const retryable = code === 'EBUSY' || code === 'EACCES' || code === 'EPERM' || code === 'ETIMEDOUT';
+		const delay = SPAWN_RETRY_DELAYS_MS[attempt];
+		if (!retryable || delay === undefined) {
+			log(`Failed to start the silent update process: ${outcome.error}`);
+			return false;
+		}
+		// Antivirus scanners briefly lock freshly downloaded installers (EBUSY);
+		// back off and retry like other updaters do.
+		log(`Could not start the update process (${code}); retrying in ${Math.round(delay / 1000)}s...`);
+		await delayMs(delay);
+	}
+}
+
+function hasWindowsInnoInstaller(): boolean {
+	try {
+		const installRoot = path.resolve(vscode.env.appRoot, '..', '..');
+		const entries = fs.readdirSync(installRoot);
+		return entries.some(name => /^unins\d+\.exe$/i.test(name));
+	} catch (err) {
+		log(`Failed to inspect the Windows install root: ${err}`);
+		return false;
+	}
+}
+
+async function applySilentUpdateWindows(version: string, installerPath: string): Promise<boolean> {
+	if (!hasWindowsInnoInstaller()) {
+		log('Windows installation does not look like an Inno setup (no unins*.exe); silent update unavailable.');
+		return false;
+	}
+
+	let updateFlag: string | null = null;
+	const cleanupFlag = () => {
+		if (updateFlag) {
+			try { fs.unlinkSync(updateFlag); } catch { /* ignore */ }
+		}
+		windowsUpdateFlagPath = null;
+	};
+
+	try {
+		const product = readKiroProductInfo();
+		const installDir = path.resolve(vscode.env.appRoot, '..', '..');
+		const flagDir = getUpdateStateDir();
+
+		// Clean stale state from previous attempts (including flags for other versions).
+		for (const stale of [path.join(flagDir, 'session-ending.flag'), path.join(flagDir, 'update-progress'), path.join(flagDir, 'cancel.flag')]) {
+			try { fs.unlinkSync(stale); } catch { /* ignore */ }
+		}
+		try {
+			for (const name of fs.readdirSync(flagDir)) {
+				if (/^KiroSetup-.*\.flag$/i.test(name)) {
+					try { fs.unlinkSync(path.join(flagDir, name)); } catch { /* ignore */ }
+				}
+			}
+		} catch { /* ignore */ }
+
+		updateFlag = path.join(flagDir, `KiroSetup-${product.quality}-${version}.flag`);
+		const sessionEndFlag = path.join(flagDir, 'session-ending.flag');
+		const progressPath = path.join(flagDir, 'update-progress');
+		const cancelFlag = path.join(flagDir, 'cancel.flag');
+		fs.writeFileSync(updateFlag, 'flag');
+		windowsUpdateFlagPath = updateFlag;
+
+		// Exact invocation Kiro's updater uses (validated against 1.1.x and 1.4.x):
+		// /dir, /progress, /cancel and RunAsInvoker must match for the setup to stage
+		// silently and signal readiness the way the app expects.
+		const started = await spawnDetachedInstaller(installerPath, [
+			'/verysilent',
+			'/log',
+			`/dir="${installDir}"`,
+			`/update="${updateFlag}"`,
+			`/progress="${progressPath}"`,
+			`/sessionend="${sessionEndFlag}"`,
+			`/cancel="${cancelFlag}"`,
+			'/nocloseapplications',
+			'/mergetasks=runcode,!desktopicon,!quicklaunchicon'
+		], { __COMPAT_LAYER: 'RunAsInvoker' });
+		if (started) {
+			log(`Silent Windows update started: ${path.basename(installerPath)}.`);
+		} else {
+			cleanupFlag();
+		}
+		return started;
+	} catch (err) {
+		cleanupFlag();
+		log(`Failed to start the silent Windows update: ${err}`);
+		return false;
+	}
+}
+
+function shellQuote(value: string): string {
+	return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+async function applySilentUpdateMacOS(zipPath: string): Promise<boolean> {
+	try {
+		const appBundle = path.resolve(vscode.env.appRoot, '..', '..', '..');
+		if (!appBundle.toLowerCase().endsWith('.app')) {
+			log(`Cannot determine the macOS app bundle path (got "${appBundle}").`);
+			return false;
+		}
+
+		// Fail early when this user cannot replace the bundle (e.g. MDM-protected
+		// /Applications); otherwise the app would quit and reopen unchanged.
+		fs.accessSync(appBundle, fs.constants.W_OK);
+		fs.accessSync(path.dirname(appBundle), fs.constants.W_OK);
+
+		// Same idea as Squirrel.Mac: wait for the app to exit, swap the bundle,
+		// relaunch. The previous bundle is kept as a backup and restored when
+		// extraction, copy or signature verification fails. The log lives outside
+		// the script directory so it survives the cleanup trap.
+		const scriptDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kuc-update-'));
+		const scriptPath = path.join(scriptDir, 'apply.sh');
+		const logPath = path.join(getUpdateStateDir(), `macos-update-${Date.now()}.log`);
+		const script = [
+			'#!/bin/bash',
+			'set -u',
+			`APP=${shellQuote(appBundle)}`,
+			`ZIP=${shellQuote(zipPath)}`,
+			`LOG=${shellQuote(logPath)}`,
+			'exec >>"$LOG" 2>&1',
+			'TMP=$(mktemp -d)',
+			`trap 'rm -rf "$TMP" "$(dirname "$0")"' EXIT`,
+			'echo "[$(date)] waiting for the app to exit"',
+			`while ps -axo command= | grep -F -- "$APP/Contents/MacOS/" | grep -qv 'grep '; do sleep 1; done`,
+			'ditto -x -k "$ZIP" "$TMP" || { echo "extract failed"; open "$APP"; exit 1; }',
+			'NEW=$(ls -d "$TMP"/*.app 2>/dev/null | head -1)',
+			'if [ -z "$NEW" ] || [ ! -f "$NEW/Contents/Info.plist" ]; then echo "invalid app bundle"; open "$APP"; exit 1; fi',
+			'BAK="$APP.kuc-backup-$$"',
+			'mv "$APP" "$BAK" || { echo "backup failed"; open "$APP"; exit 1; }',
+			'if ditto "$NEW" "$APP" && codesign --verify --deep --strict "$APP" >/dev/null 2>&1; then',
+			'  xattr -cr "$APP" 2>/dev/null || true',
+			'  rm -rf "$BAK"',
+			'  echo "update applied"',
+			'  open "$APP"',
+			'else',
+			'  echo "apply or signature verification failed; rolling back"',
+			'  rm -rf "$APP"',
+			'  mv "$BAK" "$APP"',
+			'  open "$APP"',
+			'  exit 1',
+			'fi'
+		].join('\n') + '\n';
+		fs.writeFileSync(scriptPath, script, { mode: 0o755 });
+		const started = await spawnDetachedInstaller('/bin/bash', [scriptPath]);
+		if (started) {
+			log(`Silent macOS update script started (log: ${logPath}).`);
+		}
+		return started;
+	} catch (err) {
+		log(`Failed to start the silent macOS update: ${err}`);
+		return false;
+	}
+}
+
 async function openExternalSafe(url: string, label: string): Promise<void> {
 	const safeUrl = validateDownloadUrl(url);
 	if (!safeUrl) {
@@ -769,6 +1340,7 @@ function formatBytes(bytes: number): string {
 
 interface VersionInfo {
 	version: string;
+	feedArtifacts: FeedArtifact[];
 }
 
 function fetchBody(url: string, maxBytes: number, timeoutMs: number, depth: number = 0): Promise<Buffer | null> {
@@ -919,7 +1491,7 @@ async function fetchLatestVersion(): Promise<VersionInfo | null> {
 
 	const feed = await fetchVersionFeed(targets, product.updateUrl, product.quality);
 	if (feed) {
-		return { version: feed.version };
+		return { version: feed.version, feedArtifacts: feed.artifacts };
 	}
 
 	// The downloads page is client-rendered and its static data can be stale;
@@ -927,7 +1499,7 @@ async function fetchLatestVersion(): Promise<VersionInfo | null> {
 	const fromHtml = await fetchVersionFromHtml(platform ?? undefined);
 	if (fromHtml) {
 		log('Version feed unavailable; using the downloads page result.');
-		return { version: fromHtml };
+		return { version: fromHtml, feedArtifacts: [] };
 	}
 
 	return null;
@@ -1084,9 +1656,23 @@ function getCurrentKiroVersion(): string | null {
 
 export function deactivate() {
 	log('Kiro Update Checker deactivated.');
+	// Only remove the flag when the user actually requested a restart: deactivate
+	// also runs on window reloads and extension host restarts, where the app keeps
+	// running and the setup must stay waiting.
+	if (process.platform === 'win32' && restartRequested && windowsUpdateFlagPath) {
+		try {
+			fs.unlinkSync(windowsUpdateFlagPath);
+			log('Removed the pending update flag.');
+		} catch (err) {
+			log(`Could not remove the update flag: ${err}`);
+		}
+		windowsUpdateFlagPath = null;
+		void extensionContext?.globalState.update(STATE_KEY_PENDING_FLAG, undefined);
+	}
 	setLogSink(null);
 	outputChannel = null;
+	extensionContext = null;
 }
 
 // Exported for unit testing
-export { formatBytes, isKiro, getCurrentKiroVersion };
+export { formatBytes, isKiro, getCurrentKiroVersion, shellQuote };

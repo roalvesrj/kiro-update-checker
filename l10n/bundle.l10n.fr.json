@@ -16,5 +16,8 @@
 	"An error occurred while checking for updates. Please try again later.": "Une erreur s'est produite lors de la vérification des mises à jour. Veuillez réessayer plus tard.",
 	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker : Téléchargement direct indisponible pour votre plateforme ({0}). Visitez la page de téléchargements.",
 	"Release Notes": "Notes de Version",
-	"Kiro Update Checker: An update check is already in progress.": "Kiro Update Checker : une vérification des mises à jour est déjà en cours."
+	"Kiro Update Checker: An update check is already in progress.": "Kiro Update Checker : une vérification des mises à jour est déjà en cours.",
+	"Restart to Update": "Redémarrer pour mettre à jour",
+	"🔄 Kiro {0} is ready. Restart to update.": "🔄 Kiro {0} est prêt. Redémarrez pour mettre à jour.",
+	"❌ Kiro Update Checker: Automatic update failed. Please install manually.": "❌ Kiro Update Checker : échec de la mise à jour automatique. Installez manuellement."
 }

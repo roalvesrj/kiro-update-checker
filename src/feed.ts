@@ -75,7 +75,19 @@ export function feedTargets(platform: string, arch: string, installTarget?: stri
 	return [];
 }
 
-export function artifactFor(artifacts: FeedArtifact[], ext: string): FeedArtifact | null {
+export function artifactFor(artifacts: FeedArtifact[], ext: string, version?: string): FeedArtifact | null {
 	const suffix = `.${ext.toLowerCase()}`;
-	return artifacts.find(artifact => artifact.url.toLowerCase().endsWith(suffix)) ?? null;
+	const matching = artifacts.filter(artifact => artifact.url.toLowerCase().endsWith(suffix));
+	if (matching.length === 0) {
+		return null;
+	}
+	if (version) {
+		// Never let a stale artifact from another release be installed silently.
+		const exact = matching.find(artifact => compareVersions(artifact.version, version) === 0);
+		if (exact) {
+			return exact;
+		}
+	}
+	return matching[0];
 }
+

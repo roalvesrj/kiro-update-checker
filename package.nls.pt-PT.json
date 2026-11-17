@@ -3,7 +3,6 @@
 	"kiroUpdateChecker.config.title": "Configuração do Kiro Update Checker",
 	"kiroUpdateChecker.checkInterval.description": "Intervalo em minutos para verificar atualizações. Defina 0 para desativar.",
 	"kiroUpdateChecker.enableOnStartup.description": "Verificar atualizações no arranque.",
-	"kiroUpdateChecker.autoDownload.description": "Transferir automaticamente novas versões quando disponíveis.",
 	"kiroUpdateChecker.downloadFolder.description": "Pasta personalizada para transferências. Deixe vazio para usar a pasta Transferências predefinida.",
 	"kiroUpdateChecker.packageFormat.description": "Substituir o formato do pacote para transferências. Defina 'auto' para deteção automática.",
 	"kiroUpdateChecker.packageFormat.enumAuto": "Deteção automática (recomendado)",
@@ -11,5 +10,8 @@
 	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Linux Universal)",
 	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
 	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)",
-	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg (instalador do macOS)"
+	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg (instalador do macOS)",
+	"kiroUpdateChecker.update.description": "Configurar atualizações automáticas. Transferir procura novas versões em segundo plano; instalar aplica silenciosamente e pede para reiniciar.",
+	"kiroUpdateChecker.update.download.description": "Transferir automaticamente novas versões quando disponíveis.",
+	"kiroUpdateChecker.update.install.description": "Aplicar automaticamente as atualizações transferidas (atualização silenciosa quando suportado) e pedir para reiniciar. Requer transferência habilitada."
 }

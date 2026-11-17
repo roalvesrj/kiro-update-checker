@@ -3,7 +3,6 @@
 	"kiroUpdateChecker.config.title": "Kiro Update Checker Konfiguration",
 	"kiroUpdateChecker.checkInterval.description": "Intervall in Minuten für die Suche nach Updates. Setzen Sie 0 zum Deaktivieren.",
 	"kiroUpdateChecker.enableOnStartup.description": "Beim Start nach Updates suchen.",
-	"kiroUpdateChecker.autoDownload.description": "Neue Versionen automatisch herunterladen, sobald sie verfügbar sind.",
 	"kiroUpdateChecker.downloadFolder.description": "Benutzerdefinierter Ordner für Downloads. Leer lassen für den Standard-Downloads-Ordner.",
 	"kiroUpdateChecker.packageFormat.description": "Paketformat für Downloads überschreiben. Auf 'auto' setzen für automatische Erkennung.",
 	"kiroUpdateChecker.packageFormat.enumAuto": "Auto-Erkennung (empfohlen)",
@@ -11,5 +10,8 @@
 	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Universelles Linux)",
 	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
 	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)",
-	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg (macOS-Installer)"
+	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg (macOS-Installer)",
+	"kiroUpdateChecker.update.description": "Automatische Updates konfigurieren. Herunterladen lädt neue Versionen im Hintergrund; Installieren wendet sie still an und fordert zum Neustart auf.",
+	"kiroUpdateChecker.update.download.description": "Neue Versionen automatisch herunterladen, sobald sie verfügbar sind.",
+	"kiroUpdateChecker.update.install.description": "Heruntergeladene Updates automatisch anwenden (stille Aktualisierung, wo unterstützt) und zum Neustart auffordern. Erfordert aktivierten Download."
 }

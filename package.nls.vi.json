@@ -3,7 +3,6 @@
 	"kiroUpdateChecker.config.title": "Cấu Hình Kiro Update Checker",
 	"kiroUpdateChecker.checkInterval.description": "Khoảng thời gian (phút) để kiểm tra cập nhật. Đặt 0 để tắt kiểm tra tự động.",
 	"kiroUpdateChecker.enableOnStartup.description": "Kiểm tra cập nhật khi khởi động.",
-	"kiroUpdateChecker.autoDownload.description": "Tự động tải các phiên bản mới khi có sẵn.",
 	"kiroUpdateChecker.downloadFolder.description": "Thư mục tùy chỉnh để tải xuống. Để trống để sử dụng thư mục Tải xuống mặc định.",
 	"kiroUpdateChecker.packageFormat.description": "Ghi đè định dạng gói cho tải xuống. Đặt 'auto' để tự động phát hiện.",
 	"kiroUpdateChecker.packageFormat.enumAuto": "Tự động phát hiện (khuyến nghị)",
@@ -11,5 +10,8 @@
 	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Universal Linux)",
 	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
 	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)",
-	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg (trình cài đặt macOS)"
+	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg (trình cài đặt macOS)",
+	"kiroUpdateChecker.update.description": "Cấu hình cập nhật tự động. Tải xuống tải các phiên bản mới trong nền; cài đặt áp dụng im lặng và nhắc khởi động lại.",
+	"kiroUpdateChecker.update.download.description": "Tự động tải các phiên bản mới khi có sẵn.",
+	"kiroUpdateChecker.update.install.description": "Tự động áp dụng các bản cập nhật đã tải xuống (cập nhật im lặng khi được hỗ trợ) và nhắc khởi động lại. Yêu cầu bật tải xuống."
 }

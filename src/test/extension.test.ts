@@ -5,7 +5,7 @@ import { compareVersions, parseChangelogSlugsFromIndex, parseVersion, parseVersi
 import { buildDownloadUrl, detectPlatform, detectLinuxDistro } from '../platform';
 import { isAllowedHost, resolveSafeUrl, validateDownloadUrl } from '../urls';
 import { artifactFor, feedTargets, parseMetadataFeed } from '../feed';
-import { formatBytes } from '../extension';
+import { formatBytes, shellQuote } from '../extension';
 
 // Real payloads captured from https://prod.download.desktop.kiro.dev/stable/metadata-*-stable.json
 // (2026-09-28, Kiro 1.1.70).
@@ -430,6 +430,36 @@ suite('feedTargets', () => {
 
 	test('returns no targets for unknown platforms', () => {
 		assert.deepStrictEqual(feedTargets('freebsd', 'x64'), []);
+	});
+});
+
+suite('artifactFor', () => {
+	const artifacts = [
+		{ url: 'https://prod.download.desktop.kiro.dev/releases/stable/win32-x64/signed/1.4.1/kiro-ide-1.4.1-stable-win32-x64.exe', version: '1.4.1' },
+		{ url: 'https://prod.download.desktop.kiro.dev/releases/stable/win32-x64/signed/1.4.5/kiro-ide-1.4.5-stable-win32-x64.exe', version: '1.4.5' }
+	];
+
+	test('picks the artifact matching the requested version', () => {
+		assert.strictEqual(artifactFor(artifacts, 'exe', '1.4.5')?.version, '1.4.5');
+		assert.strictEqual(artifactFor(artifacts, 'exe', '1.4.1')?.version, '1.4.1');
+	});
+
+	test('falls back to the first matching artifact when the version is absent', () => {
+		assert.strictEqual(artifactFor(artifacts, 'exe', '9.9.9')?.version, '1.4.1');
+	});
+
+	test('returns null when no artifact has the requested extension', () => {
+		assert.strictEqual(artifactFor(artifacts, 'zip'), null);
+	});
+});
+
+suite('shellQuote', () => {
+	test('quotes plain paths for POSIX shells', () => {
+		assert.strictEqual(shellQuote('/Applications/Kiro.app'), "'/Applications/Kiro.app'");
+	});
+
+	test('escapes single quotes inside paths', () => {
+		assert.strictEqual(shellQuote("/Users/O'Brien/Kiro.app"), "'/Users/O'\\''Brien/Kiro.app'");
 	});
 });
 

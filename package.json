@@ -2,7 +2,7 @@
   "name": "kiro-update-checker",
   "displayName": "Kiro Update Checker",
   "description": "Automatically checks Kiro's official update feed for new IDE releases. Intended for users running Kiro in Administrator mode, where the built-in update feature may not be available.",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "icon": "images/KUC-logo.png",
   "publisher": "roalvesrj",
   "repository": {
@@ -44,11 +44,25 @@
           "default": true,
           "description": "%kiroUpdateChecker.enableOnStartup.description%"
         },
-        "kiroUpdateChecker.autoDownload": {
-          "type": "boolean",
-          "default": false,
+        "kiroUpdateChecker.update": {
+          "type": "object",
+          "additionalProperties": false,
           "scope": "machine",
-          "description": "%kiroUpdateChecker.autoDownload.description%"
+          "description": "%kiroUpdateChecker.update.description%",
+          "properties": {
+            "download": {
+              "type": "boolean",
+              "description": "%kiroUpdateChecker.update.download.description%"
+            },
+            "install": {
+              "type": "boolean",
+              "description": "%kiroUpdateChecker.update.install.description%"
+            }
+          },
+          "default": {
+            "download": false,
+            "install": false
+          }
         },
         "kiroUpdateChecker.downloadFolder": {
           "type": "string",

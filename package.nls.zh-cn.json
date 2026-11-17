@@ -3,7 +3,6 @@
 	"kiroUpdateChecker.config.title": "Kiro Update Checker 配置",
 	"kiroUpdateChecker.checkInterval.description": "检查更新的间隔（分钟）。设置为 0 以禁用自动检查。",
 	"kiroUpdateChecker.enableOnStartup.description": "是否在启动时检查更新。",
-	"kiroUpdateChecker.autoDownload.description": "有新版本时自动下载。",
 	"kiroUpdateChecker.downloadFolder.description": "下载更新的自定义文件夹。留空则使用默认的 Downloads 文件夹。",
 	"kiroUpdateChecker.packageFormat.description": "覆盖下载的包格式。设置为 'auto' 以自动检测。",
 	"kiroUpdateChecker.packageFormat.enumAuto": "自动检测（推荐）",
@@ -11,5 +10,8 @@
 	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz（通用 Linux）",
 	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
 	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)",
-	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg（macOS 安装程序）"
+	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg（macOS 安装程序）",
+	"kiroUpdateChecker.update.description": "配置自动更新。下载会在后台获取新版本；安装会静默应用并提示重启。",
+	"kiroUpdateChecker.update.download.description": "有新版本时自动下载。",
+	"kiroUpdateChecker.update.install.description": "自动应用已下载的更新（在支持的环境中静默更新）并提示重启。需要启用下载。"
 }

@@ -16,5 +16,8 @@
 	"An error occurred while checking for updates. Please try again later.": "अपडेट जाँचते समय त्रुटि हुई। कृपया बाद में पुनः प्रयास करें।",
 	"❌ Kiro Update Checker: Direct download not available for your platform ({0}). Visit the downloads page.": "❌ Kiro Update Checker: आपके प्लेटफ़ॉर्म ({0}) के लिए सीधा डाउनलोड उपलब्ध नहीं है। डाउनलोड पेज पर जाएँ।",
 	"Release Notes": "रिलीज़ नोट्स",
-	"Kiro Update Checker: An update check is already in progress.": "Kiro Update Checker: एक अपडेट जाँच पहले से ही चल रही है।"
+	"Kiro Update Checker: An update check is already in progress.": "Kiro Update Checker: एक अपडेट जाँच पहले से ही चल रही है।",
+	"Restart to Update": "अपडेट के लिए पुनः प्रारंभ करें",
+	"🔄 Kiro {0} is ready. Restart to update.": "🔄 Kiro {0} तैयार है। अपडेट के लिए पुनः प्रारंभ करें।",
+	"❌ Kiro Update Checker: Automatic update failed. Please install manually.": "❌ Kiro Update Checker: स्वचालित अपडेट विफल रहा। कृपया मैन्युअल रूप से इंस्टॉल करें।"
 }

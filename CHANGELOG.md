@@ -1,5 +1,30 @@
 # Change Log
 
+## [0.5.0] - 2026-11-17
+### Added
+- **Silent update (Windows)**: applies the downloaded installer in the background with the same silent Inno invocation Kiro's own updater uses (`/verysilent /dir=... /update=... /progress=... /sessionend=... /cancel=... /nocloseapplications` + `RunAsInvoker`), detached and with no console window. Retries with backoff when antivirus briefly locks the freshly downloaded installer
+- **Silent update (macOS)**: replaces the app bundle from the feed's `.zip` artifact using a detached script (wait for exit → `ditto` extract → swap → clear quarantine → relaunch), like Squirrel.Mac
+- **Restart to Update** notification: schedules a hidden relaunch task (Task Scheduler, so it survives the shutdown), quits the app via `workbench.action.quit` and removes the update flag on shutdown (the native session-end signal), so the setup finishes and Kiro relaunches (the native flow relies on Electron's `app.relaunch()`, which extensions cannot call)
+- New `kiroUpdateChecker.update` object setting (machine-scoped) with `download` and `install` boolean options, grouped in a single settings control (like `git.showActionButton`). `install` requires `download`; legacy settings are migrated automatically on activation
+- New l10n strings for the restart flow in all 15 languages
+
+### Changed
+- Auto-download on macOS fetches the updater `.zip` from the feed instead of the `.dmg` (the exact artifact the native updater consumes); manual mode still links the `.dmg`
+- Auto-download uses the exact installer URL from the feed for Windows and tar.gz on Linux
+- On Windows/macOS, **Install Now** starts the silent update and offers **Restart to Update**; on Linux it still opens the package with the system handler
+
+### Removed
+- The `autoDownload` boolean setting was replaced by the `update` object (`download`/`install`); existing values are migrated automatically
+
+### Notes
+- Silent update on Windows requires the standard Inno Setup installation (`unins*.exe`); portable/archive installs fall back to manual installation
+- Silent update on macOS requires the updater `.zip` artifact in the feed
+- The installer must match the downloaded record (size + SHA-256); otherwise the silent update is refused and manual installation is offered
+
+<p align="center">
+  <img src="./images/example-autoinstall-01.png" alt="Automatic install: restart to finish the update" width="600"/>
+</p>
+
 ## [0.4.1] - 2026-10-20
 ### Fixed
 - **Release Notes link**: the Kiro downloads page is now client-rendered and its static HTML carries stale data, which made the button open an outdated changelog. The changelog URL is now resolved from the changelog index (`kiro.dev/changelog`): exact release page when available, otherwise the minor-version page with a `#patch-...` anchor, with a minor-page fallback

@@ -33,7 +33,8 @@ or use **Extensions → ... → Install from VSIX...** in Kiro.
 - **Official update feed**: version detection uses Kiro's own updater JSON feed (no more HTML scraping), with the downloads page only as fallback
 - Notifies you when a new version is available
 - Supports auto-downloading the installer
-- **No console windows**: **Install Now** hands the installer to the system handler
+- **Silent update (Windows/macOS)**: applies updates in the background like Kiro's native updater and offers **Restart to Update** — no console windows
+- **No console windows on Linux either**: **Install Now** hands the package to the system handler
 - Manual check command: **Kiro: Check for Updates Now**
 - Dismiss notification for a specific version
 - **Release Notes button**: opens official Kiro changelog in your browser
@@ -60,6 +61,12 @@ or use **Extensions → ... → Install from VSIX...** in Kiro.
   <em>Ready to install</em>
 </p>
 
+<p align="center">
+  <img src="./images/example-autoinstall-01.png" alt="Automatic install: restart to finish" width="600"/>
+  <br/>
+  <em>Automatic install: restart to finish the update</em>
+</p>
+
 ## Extension Settings
 
 This extension contributes the following settings:
@@ -67,7 +74,7 @@ This extension contributes the following settings:
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `kiroUpdateChecker.enableOnStartup` | `true` | Whether to check for updates on startup |
-| `kiroUpdateChecker.autoDownload` | `false` | Automatically download new versions when they become available (you still choose when to install) |
+| `kiroUpdateChecker.update` | `{ "download": false, "install": false }` | Automatic update behavior (grouped object): `download` auto-downloads new versions; `install` silently applies them and prompts to restart (requires `download`) |
 | `kiroUpdateChecker.downloadFolder` | `""` | Custom folder to download updates to (empty = Downloads folder) |
 | `kiroUpdateChecker.checkInterval` | `60` | Interval in minutes to check for updates (0 = disable) |
 | `kiroUpdateChecker.packageFormat` | `"auto"` | Override the package format for downloads (auto, deb, tar.gz, dmg, pkg, exe) |
@@ -104,6 +111,13 @@ This extension contributes the following settings:
 > **Note:** version 0.3.0+ requires a Kiro build based on VS Code ≥ 1.93. Users on older Kiro builds will remain on 0.2.2.
 
 ## Release Notes
+
+### 0.5.0
+
+- **Silent update (Windows and macOS)**: applies the update in the background exactly like Kiro's native updater (Inno silent invocation / bundle swap) and offers **Restart to Update** — no console windows anymore
+- New `kiroUpdateChecker.update` object setting: `download` and `install` grouped in one control, with `install` requiring `download` — legacy `autoDownload` settings are migrated automatically
+- Linux stays manual, matching Kiro's native behavior; the terminal-launch path is gone
+- Silent update requires an Inno Setup install on Windows (portable installs fall back to manual) and the `.zip` updater artifact on macOS
 
 ### 0.4.1
 

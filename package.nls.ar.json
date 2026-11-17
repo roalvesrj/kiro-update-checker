@@ -3,7 +3,6 @@
 	"kiroUpdateChecker.config.title": "إعدادات Kiro Update Checker",
 	"kiroUpdateChecker.checkInterval.description": "الفاصل الزمني بالدقائق للتحقق من التحديثات. اضبط 0 لتعطيل التحقق التلقائي.",
 	"kiroUpdateChecker.enableOnStartup.description": "التحقق من التحديثات عند بدء التشغيل.",
-	"kiroUpdateChecker.autoDownload.description": "تنزيل الإصدارات الجديدة تلقائيًا عند توفرها.",
 	"kiroUpdateChecker.downloadFolder.description": "مجلد مخصص لتنزيل التحديثات. اتركه فارغاً لاستخدام مجلد التنزيلات الافتراضي.",
 	"kiroUpdateChecker.packageFormat.description": "تجاوز تنسيق الحزمة للتنزيلات. اضبط 'auto' للكشف التلقائي.",
 	"kiroUpdateChecker.packageFormat.enumAuto": "كشف تلقائي (موصى به)",
@@ -11,5 +10,8 @@
 	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Linux Universal)",
 	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
 	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)",
-	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg (مثبّت macOS)"
+	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg (مثبّت macOS)",
+	"kiroUpdateChecker.update.description": "تكوين التحديثات التلقائية. يقوم التنزيل بجلب الإصدارات الجديدة في الخلفية؛ ويطبق التثبيت التحديثات بصمت ويطلب إعادة التشغيل.",
+	"kiroUpdateChecker.update.download.description": "تنزيل الإصدارات الجديدة تلقائيًا عند توفرها.",
+	"kiroUpdateChecker.update.install.description": "تطبيق التحديثات التي تم تنزيلها تلقائيًا (تحديث صامت حيثما كان مدعومًا) وطلب إعادة التشغيل. يتطلب تفعيل التنزيل."
 }

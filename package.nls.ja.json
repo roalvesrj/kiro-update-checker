@@ -3,7 +3,6 @@
 	"kiroUpdateChecker.config.title": "Kiro Update Checker の設定",
 	"kiroUpdateChecker.checkInterval.description": "アップデートを確認する間隔（分）。0 に設定すると自動確認を無効にします。",
 	"kiroUpdateChecker.enableOnStartup.description": "起動時にアップデートを確認するかどうか。",
-	"kiroUpdateChecker.autoDownload.description": "新しいバージョンが利用可能になったら自動的にダウンロードします。",
 	"kiroUpdateChecker.downloadFolder.description": "ダウンロード先のカスタムフォルダー。空欄にするとデフォルトの Downloads フォルダーを使用します。",
 	"kiroUpdateChecker.packageFormat.description": "ダウンロードするパッケージ形式を上書きします。自動検出するには 'auto' に設定してください。",
 	"kiroUpdateChecker.packageFormat.enumAuto": "自動検出（推奨）",
@@ -11,5 +10,8 @@
 	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Universal Linux)",
 	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
 	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)",
-	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg (macOS インストーラー)"
+	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg (macOS インストーラー)",
+	"kiroUpdateChecker.update.description": "自動更新を設定します。ダウンロードは新しいバージョンをバックグラウンドで取得し、インストールはサイレントに適用して再起動を促します。",
+	"kiroUpdateChecker.update.download.description": "新しいバージョンが利用可能になったら自動的にダウンロードします。",
+	"kiroUpdateChecker.update.install.description": "ダウンロードした更新を自動的に適用し（対応環境ではサイレント更新）、再起動を促します。ダウンロードの有効化が必要です。"
 }

@@ -3,7 +3,6 @@
 	"kiroUpdateChecker.config.title": "Kiro Update Checker Yapılandırması",
 	"kiroUpdateChecker.checkInterval.description": "Güncellemeleri kontrol etme aralığı (dakika). Otomatik kontrolü devre dışı bırakmak için 0 ayarlayın.",
 	"kiroUpdateChecker.enableOnStartup.description": "Başlangıçta güncellemeleri kontrol et.",
-	"kiroUpdateChecker.autoDownload.description": "Yeni sürümler kullanılabilir olduğunda otomatik indir.",
 	"kiroUpdateChecker.downloadFolder.description": "Güncellemeler için özel klasör. Varsayılan İndirilenler klasörünü kullanmak için boş bırakın.",
 	"kiroUpdateChecker.packageFormat.description": "İndirmeler için paket biçimini geçersiz kıl. Otomatik algılama için 'auto' ayarlayın.",
 	"kiroUpdateChecker.packageFormat.enumAuto": "Otomatik algılama (önerilir)",
@@ -11,5 +10,8 @@
 	"kiroUpdateChecker.packageFormat.enumTarGz": ".tar.gz (Universal Linux)",
 	"kiroUpdateChecker.packageFormat.enumDmg": ".dmg (macOS)",
 	"kiroUpdateChecker.packageFormat.enumExe": ".exe (Windows)",
-	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg (macOS yükleyicisi)"
+	"kiroUpdateChecker.packageFormat.enumPkg": ".pkg (macOS yükleyicisi)",
+	"kiroUpdateChecker.update.description": "Otomatik güncellemeleri yapılandırın. İndir yeni sürümleri arka planda alır; yükle bunları sessizce uygular ve yeniden başlatmayı ister.",
+	"kiroUpdateChecker.update.download.description": "Yeni sürümler kullanılabilir olduğunda otomatik indir.",
+	"kiroUpdateChecker.update.install.description": "İndirilen güncellemeleri otomatik uygula (desteklenen yerlerde sessiz güncelleme) ve yeniden başlatmayı iste. İndirmenin etkin olması gerekir."
 }
