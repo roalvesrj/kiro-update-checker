@@ -82,11 +82,8 @@ export function artifactFor(artifacts: FeedArtifact[], ext: string, version?: st
 		return null;
 	}
 	if (version) {
-		// Never let a stale artifact from another release be installed silently.
-		const exact = matching.find(artifact => compareVersions(artifact.version, version) === 0);
-		if (exact) {
-			return exact;
-		}
+		// Strict: never fall back to an artifact from a different version.
+		return matching.find(artifact => compareVersions(artifact.version, version) === 0) ?? null;
 	}
 	return matching[0];
 }

@@ -19,5 +19,10 @@
 	"Kiro Update Checker: An update check is already in progress.": "Kiro Update Checker: 已有更新检查正在进行中。",
 	"Restart to Update": "重启以更新",
 	"🔄 Kiro {0} is ready. Restart to update.": "🔄 Kiro {0} 已就绪。重启以更新。",
-	"❌ Kiro Update Checker: Automatic update failed. Please install manually.": "❌ Kiro Update Checker: 自动更新失败。请手动安装。"
+	"❌ Kiro Update Checker: Automatic update failed. Please install manually.": "❌ Kiro Update Checker: 自动更新失败。请手动安装。",
+	"⚠️ The automatic update to Kiro {0} did not complete. You can retry or install it manually.": "⚠️ Kiro {0} 的自动更新未完成。您可以重试或手动安装。",
+	"Retry Update": "重试更新",
+	"⚠️ Automatic updates are not available for this Kiro installation. Run the installer manually.": "⚠️ 此 Kiro 安装不支持自动更新。请手动运行安装程序。",
+	"Run Installer": "运行安装程序",
+	"Open Logs": "打开日志"
 }

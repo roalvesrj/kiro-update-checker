@@ -112,6 +112,16 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 0.5.1
+
+- **Fixed:** localization bundles were not loading at all (the `l10n` field was in the wrong manifest section); all 15 languages now load, with lowercase locale identifiers
+- **Fixed:** system-wide Kiro installations use the manual browser flow instead of the silent updater (which requires elevation); write access is probed before staging
+- **Fixed:** a failed manual fallback no longer opens the installer on every check — one notice per version with **Install Now** / **Open Downloads Page**
+- **Fixed:** update failures now show **Install Now** / **Open Logs** on the next session; window reloads no longer trigger false "update failed" notices
+- **Fixed:** Windows background updates verify the staged `new_<exe>` before offering "Restart to Update"; if staging failed, the setup is cancelled and the manual installer is offered
+- **Fixed:** a cross-window lock prevents two Kiro windows from staging the same update (which corrupts the versioned staging)
+- Metadata: `license`, workspace-trust capability, UI-only extension kind, machine-scoped intervals
+
 ### 0.5.0
 
 - **Silent update (Windows and macOS)**: applies the update in the background exactly like Kiro's native updater (Inno silent invocation / bundle swap) and offers **Restart to Update** — no console windows anymore

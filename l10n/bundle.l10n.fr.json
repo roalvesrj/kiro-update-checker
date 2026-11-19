@@ -19,5 +19,10 @@
 	"Kiro Update Checker: An update check is already in progress.": "Kiro Update Checker : une vérification des mises à jour est déjà en cours.",
 	"Restart to Update": "Redémarrer pour mettre à jour",
 	"🔄 Kiro {0} is ready. Restart to update.": "🔄 Kiro {0} est prêt. Redémarrez pour mettre à jour.",
-	"❌ Kiro Update Checker: Automatic update failed. Please install manually.": "❌ Kiro Update Checker : échec de la mise à jour automatique. Installez manuellement."
+	"❌ Kiro Update Checker: Automatic update failed. Please install manually.": "❌ Kiro Update Checker : échec de la mise à jour automatique. Installez manuellement.",
+	"⚠️ The automatic update to Kiro {0} did not complete. You can retry or install it manually.": "⚠️ La mise à jour automatique de Kiro {0} ne s'est pas terminée. Vous pouvez réessayer ou l'installer manuellement.",
+	"Retry Update": "Réessayer la mise à jour",
+	"⚠️ Automatic updates are not available for this Kiro installation. Run the installer manually.": "⚠️ Les mises à jour automatiques ne sont pas disponibles pour cette installation de Kiro. Lancez le programme d'installation manuellement.",
+	"Run Installer": "Lancer le programme d'installation",
+	"Open Logs": "Ouvrir les journaux"
 }

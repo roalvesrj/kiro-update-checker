@@ -1,5 +1,19 @@
 # Change Log
 
+## [0.5.1] - 2026-11-19
+### Fixed
+- **Localization was never loading**: the `l10n` field was under `contributes` instead of the manifest top level, so all 15 bundles were ignored. Bundles now load, and locale file names use lowercase identifiers (`pt-br`, `pt-pt`)
+- **Windows silent update**: system-wide installations (e.g. Program Files) are excluded from the silent path (they require elevation) and use the manual browser flow instead of failing inside the Inno updater
+- **Windows silent update**: the install directory is probed for write access before staging, and a setup that exits immediately is treated as a failure
+- **Manual fallback no longer opens the installer automatically** on every check; it shows one actionable notice per version (**Install Now** / **Open Downloads Page**)
+- **Update failure feedback**: if a staged update did not complete, the next session shows a warning with **Install Now** / **Open Logs**, and no longer re-stages automatically or shows contradictory notifications
+- **Staging is verified before the restart prompt**: Windows background updates only offer "Restart to Update" after the setup staged `new_<exe>`; otherwise the setup is cancelled and the manual installer is offered (prevents the inno_updater "new executable not found" failure)
+- **Cross-window installer lock**: only one Kiro window can stage an update at a time (duplicate setups could corrupt the versioned staging)
+- Window reloads no longer trigger a false "update failed" notice (the main process PID is tracked)
+- The Windows setup log is kept per attempt in a random temp directory; the relaunch task waits briefly and skips starting Kiro if the setup already launched it
+- Manifest: added `license`, `capabilities.untrustedWorkspaces`, `extensionKind: ["ui"]`, and machine-scoped `checkInterval`/`enableOnStartup`
+- New l10n strings (manual fallback, logs) in all 15 languages
+
 ## [0.5.0] - 2026-11-17
 ### Added
 - **Silent update (Windows)**: applies the downloaded installer in the background with the same silent Inno invocation Kiro's own updater uses (`/verysilent /dir=... /update=... /progress=... /sessionend=... /cancel=... /nocloseapplications` + `RunAsInvoker`), detached and with no console window. Retries with backoff when antivirus briefly locks the freshly downloaded installer

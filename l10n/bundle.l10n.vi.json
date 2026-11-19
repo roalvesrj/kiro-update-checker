@@ -19,5 +19,10 @@
 	"Kiro Update Checker: An update check is already in progress.": "Kiro Update Checker: đang có một lần kiểm tra cập nhật diễn ra.",
 	"Restart to Update": "Khởi động lại để cập nhật",
 	"🔄 Kiro {0} is ready. Restart to update.": "🔄 Kiro {0} đã sẵn sàng. Khởi động lại để cập nhật.",
-	"❌ Kiro Update Checker: Automatic update failed. Please install manually.": "❌ Kiro Update Checker: cập nhật tự động thất bại. Vui lòng cài đặt thủ công."
+	"❌ Kiro Update Checker: Automatic update failed. Please install manually.": "❌ Kiro Update Checker: cập nhật tự động thất bại. Vui lòng cài đặt thủ công.",
+	"⚠️ The automatic update to Kiro {0} did not complete. You can retry or install it manually.": "⚠️ Cập nhật tự động Kiro {0} chưa hoàn tất. Bạn có thể thử lại hoặc cài đặt thủ công.",
+	"Retry Update": "Thử lại cập nhật",
+	"⚠️ Automatic updates are not available for this Kiro installation. Run the installer manually.": "⚠️ Cập nhật tự động không khả dụng cho bản cài Kiro này. Hãy chạy trình cài đặt thủ công.",
+	"Run Installer": "Chạy trình cài đặt",
+	"Open Logs": "Mở nhật ký"
 }

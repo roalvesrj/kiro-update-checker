@@ -20,6 +20,8 @@ const STATE_KEY_DISMISSED_VERSION = 'kiroUpdateChecker.dismissedVersion';
 const STATE_KEY_INSTALLER_PREFIX = 'kiroUpdateChecker.installer.';
 const STATE_KEY_PENDING_UPDATE = 'kiroUpdateChecker.pendingUpdate';
 const STATE_KEY_PENDING_FLAG = 'kiroUpdateChecker.pendingFlagPath';
+const STATE_KEY_FAILURE_NOTIFIED = 'kiroUpdateChecker.updateFailureNotified';
+const STATE_KEY_MANUAL_FALLBACK_NOTIFIED = 'kiroUpdateChecker.manualFallbackNotified';
 const MAX_PAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const MAX_FEED_SIZE_BYTES = 1024 * 1024;
 const MAX_INSTALLER_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
@@ -170,6 +172,7 @@ interface PendingUpdate {
 	version: string;
 	platform: string;
 	stagedAt: number;
+	mainPid?: number;
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -201,16 +204,32 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const pendingUpdate = context.globalState.get<PendingUpdate>(STATE_KEY_PENDING_UPDATE);
 	if (pendingUpdate) {
-		const current = getCurrentKiroVersion();
-		const applied = current ? compareVersions(current, pendingUpdate.version) >= 0 : false;
-		void context.globalState.update(STATE_KEY_PENDING_UPDATE, undefined);
-		if (!applied) {
-			// The previous staged update did not complete; allow the next automatic
-			// check to offer it again instead of staying dismissed forever.
-			void context.globalState.update(STATE_KEY_DISMISSED_VERSION, undefined);
-			log(`Previous staged update to ${pendingUpdate.version} did not complete; it will be retried.`);
+		const sameAppSession = pendingUpdate.mainPid !== undefined && pendingUpdate.mainPid === process.ppid;
+		if (sameAppSession) {
+			log('Extension host restarted but Kiro is still the same process; keeping the staged update.');
 		} else {
-			log(`Cleared pending update state (now on ${current}).`);
+			const current = getCurrentKiroVersion();
+			if (!current) {
+				log('Could not determine the current Kiro version; keeping the pending update state.');
+			} else {
+				const applied = compareVersions(current, pendingUpdate.version) >= 0;
+				void context.globalState.update(STATE_KEY_PENDING_UPDATE, undefined);
+				releaseInstallerLock();
+				if (applied) {
+					log(`Cleared pending update state (now on ${current}).`);
+					void context.globalState.update(STATE_KEY_FAILURE_NOTIFIED, undefined);
+					void context.globalState.update(STATE_KEY_MANUAL_FALLBACK_NOTIFIED, undefined);
+				} else {
+					// Keep the dismissed marker: the user decides whether to retry.
+					log(`Previous staged update to ${pendingUpdate.version} did not complete.`);
+					const notifiedVersion = context.globalState.get<string>(STATE_KEY_FAILURE_NOTIFIED);
+					if (notifiedVersion !== pendingUpdate.version) {
+						void context.globalState.update(STATE_KEY_FAILURE_NOTIFIED, pendingUpdate.version);
+						void showUpdateFailureNotice(context, pendingUpdate.version)
+							.catch(err => log(`Update failure notice failed: ${err}`));
+					}
+				}
+			}
 		}
 	}
 
@@ -359,8 +378,15 @@ async function runCheckForUpdates(context: vscode.ExtensionContext, manualCheck:
 			}
 
 			const { autoDownload, autoInstall } = readUpdatePreferences();
+			const productInfo = readKiroProductInfo();
 
-			if (autoDownload && !vscode.workspace.isTrusted) {
+			if (autoDownload && productInfo.installTarget === 'system') {
+				// A system-wide install needs elevation, which the silent updater
+				// cannot request (RunAsInvoker). Use the manual browser flow instead
+				// of downloading a user-scope installer.
+				log('System-wide Kiro installation detected; automatic updates require elevation. Using the manual flow.');
+				await handleManualDownload(context, currentVersion, latestVersion);
+			} else if (autoDownload && !vscode.workspace.isTrusted) {
 				log('Workspace is not trusted; falling back to manual download.');
 				await handleManualDownload(context, currentVersion, latestVersion);
 			} else if (autoDownload) {
@@ -471,6 +497,85 @@ function getUpdateStateDir(): string {
 	const dir = path.join(os.tmpdir(), 'kiro-update-checker');
 	fs.mkdirSync(dir, { recursive: true });
 	return dir;
+}
+
+function installerLockPath(): string {
+	return path.join(getUpdateStateDir(), 'installer.lock');
+}
+
+function readInstallerLockPid(): number | null {
+	try {
+		const pid = parseInt(fs.readFileSync(installerLockPath(), 'utf8').trim(), 10);
+		return Number.isFinite(pid) && pid > 0 ? pid : null;
+	} catch {
+		return null;
+	}
+}
+
+function isProcessAlive(pid: number): boolean {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch (err) {
+		return (err as NodeJS.ErrnoException).code === 'EPERM';
+	}
+}
+
+function acquireInstallerLock(): boolean {
+	const lockPath = installerLockPath();
+	try {
+		fs.writeFileSync(lockPath, String(process.pid), { flag: 'wx' });
+		return true;
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code !== 'EEXIST') {
+			log(`Could not create the installer lock: ${err}`);
+			return false;
+		}
+	}
+	const pid = readInstallerLockPid();
+	if (pid && pid !== process.pid && isProcessAlive(pid)) {
+		log(`Another Kiro window (pid ${pid}) is already applying the update.`);
+		return false;
+	}
+	try { fs.unlinkSync(lockPath); } catch { /* ignore */ }
+	try {
+		fs.writeFileSync(lockPath, String(process.pid), { flag: 'wx' });
+		return true;
+	} catch (err) {
+		log(`Could not take over the installer lock: ${err}`);
+		return false;
+	}
+}
+
+function releaseInstallerLock(): void {
+	const lockPath = installerLockPath();
+	const pid = readInstallerLockPid();
+	if (pid !== null && pid !== process.pid) {
+		return;
+	}
+	try { fs.unlinkSync(lockPath); } catch { /* ignore */ }
+}
+
+async function waitForFile(filePath: string, timeoutMs: number): Promise<boolean> {
+	const deadline = Date.now() + timeoutMs;
+	while (Date.now() < deadline) {
+		if (fs.existsSync(filePath)) {
+			return true;
+		}
+		await delayMs(1000);
+	}
+	return false;
+}
+
+function isVersionedInstall(installDir: string): boolean {
+	try {
+		return fs.readdirSync(installDir).some(name => {
+			if (!/^[0-9a-f]{10}$/i.test(name)) { return false; }
+			try { return fs.statSync(path.join(installDir, name)).isDirectory(); } catch { return false; }
+		});
+	} catch {
+		return false;
+	}
 }
 
 function resolveWithin(folder: string, fileName: string): string | null {
@@ -859,7 +964,7 @@ async function showDownloadError(latestVersion: string): Promise<void> {
 	);
 }
 
-type StageResult = 'ok' | 'untrusted' | 'failed';
+type StageResult = 'ok' | 'untrusted' | 'failed' | 'busy';
 
 async function stageSilentUpdate(
 	context: vscode.ExtensionContext,
@@ -879,16 +984,24 @@ async function stageSilentUpdate(
 		return 'untrusted';
 	}
 
+	if (!acquireInstallerLock()) {
+		return 'busy';
+	}
+
 	const applied = await applySilentUpdate(info, latestVersion, filePath);
 	if (!applied) {
+		releaseInstallerLock();
 		return 'failed';
 	}
 
 	await context.globalState.update(STATE_KEY_PENDING_UPDATE, {
 		version: latestVersion,
 		platform: info.platform,
-		stagedAt: Date.now()
+		stagedAt: Date.now(),
+		mainPid: process.ppid
 	} satisfies PendingUpdate);
+	await context.globalState.update(STATE_KEY_FAILURE_NOTIFIED, undefined);
+	await context.globalState.update(STATE_KEY_MANUAL_FALLBACK_NOTIFIED, undefined);
 
 	if (process.platform === 'win32' && windowsUpdateFlagPath) {
 		await context.globalState.update(STATE_KEY_PENDING_FLAG, windowsUpdateFlagPath);
@@ -917,8 +1030,12 @@ async function handleDownloadedInstaller(
 			await showIntegrityError(filePath);
 			return;
 		}
+		if (staged === 'busy') {
+			log('Another Kiro window is already applying this update.');
+			return;
+		}
 		log('Silent update could not be started; offering manual install.');
-		await showAutomaticUpdateError(info, filePath);
+		await showManualFallback(context, info, latestVersion, filePath);
 		return;
 	}
 
@@ -954,8 +1071,10 @@ function showInstallNotification(
 					showRestartNotification(context, latestVersion, filePath);
 				} else if (staged === 'untrusted') {
 					await showIntegrityError(filePath);
+				} else if (staged === 'busy') {
+					log('Another Kiro window is already applying this update.');
 				} else {
-					await showAutomaticUpdateError(info, filePath);
+					await showManualFallback(context, info, latestVersion, filePath);
 				}
 			} else {
 				// Linux: hand the downloaded package to the system handler (no terminal).
@@ -1008,7 +1127,11 @@ function scheduleWindowsRelaunch(): void {
 			'  Start-Sleep -Seconds 1',
 			'}',
 			"$p = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -like 'kiro*' }",
-			'if (-not $p) { Start-Process -FilePath $ExePath }',
+			'if (-not $p) {',
+			'  Start-Sleep -Seconds 10',
+			"  $kiro = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -eq 'Kiro' }",
+			'  if (-not $kiro) { Start-Process -FilePath $ExePath }',
+			'}',
 			`schtasks /Delete /TN '${WINDOWS_RELAUNCH_TASK}' /F | Out-Null`,
 			'Remove-Item -LiteralPath $MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyContinue'
 		].join('\r\n') + '\r\n';
@@ -1078,15 +1201,89 @@ function showRestartNotification(context: vscode.ExtensionContext, latestVersion
 	}, err => log(`Restart notification failed: ${err}`));
 }
 
-async function showAutomaticUpdateError(info: PlatformInfo, filePath: string): Promise<void> {
-	await vscode.window.showErrorMessage(
-		vscode.l10n.t('❌ Kiro Update Checker: Automatic update failed. Please install manually.')
+async function showUpdateFailureNotice(context: vscode.ExtensionContext, version: string): Promise<void> {
+	const installBtn = vscode.l10n.t('Install Now');
+	const logsBtn = vscode.l10n.t('Open Logs');
+	const selection = await vscode.window.showWarningMessage(
+		vscode.l10n.t('⚠️ The automatic update to Kiro {0} did not complete. You can retry or install it manually.', version),
+		installBtn,
+		logsBtn
 	);
-	if (info.platform === 'darwin') {
-		// Opening a .zip with the system handler is not useful for installing.
+	if (selection === installBtn) {
+		await runInstallerFromRecord(context, version);
+	} else if (selection === logsBtn) {
+		await openUpdateLogs();
+	}
+}
+
+async function runInstallerFromRecord(context: vscode.ExtensionContext, version: string): Promise<void> {
+	const record = context.globalState.get<InstallerRecord>(`${STATE_KEY_INSTALLER_PREFIX}${version}`);
+	if (!record) {
+		log('No recorded installer to run; opening the downloads page.');
 		await openExternalSafe(DOWNLOADS_PAGE_URL, 'downloads page');
-	} else {
-		await openInstallerFile(filePath);
+		return;
+	}
+	await openInstallerFile(record.filePath);
+}
+
+async function openUpdateLogs(): Promise<void> {
+	try {
+		const temp = os.tmpdir();
+		const candidates: string[] = [];
+		for (const name of fs.readdirSync(temp)) {
+			if (/^vscode-inno-updater-.*\.log$/i.test(name)) {
+				candidates.push(path.join(temp, name));
+			}
+		}
+		for (const name of fs.readdirSync(temp)) {
+			if (!/^kuc-update-/i.test(name)) { continue; }
+			const dir = path.join(temp, name);
+			try {
+				if (!fs.statSync(dir).isDirectory()) { continue; }
+				for (const child of fs.readdirSync(dir)) {
+					if (/^inno-update-.*\.log$/i.test(child)) {
+						candidates.push(path.join(dir, child));
+					}
+				}
+			} catch { /* ignore */ }
+		}
+		if (candidates.length === 0) {
+			log('No update logs were found.');
+			return;
+		}
+		const newest = candidates
+			.map(file => ({ file, mtime: fs.statSync(file).mtimeMs }))
+			.sort((a, b) => b.mtime - a.mtime)[0].file;
+		log(`Opening update log: ${newest}`);
+		await vscode.env.openExternal(vscode.Uri.file(newest));
+	} catch (err) {
+		log(`Failed to open update logs: ${err}`);
+	}
+}
+
+async function showManualFallback(context: vscode.ExtensionContext, info: PlatformInfo, version: string, filePath: string): Promise<void> {
+	const notified = context.globalState.get<string>(STATE_KEY_MANUAL_FALLBACK_NOTIFIED);
+	if (notified === version) {
+		log('Manual fallback already offered for this version; not opening the installer again.');
+		return;
+	}
+	await context.globalState.update(STATE_KEY_MANUAL_FALLBACK_NOTIFIED, version);
+
+	const runBtn = vscode.l10n.t('Install Now');
+	const downloadsBtn = vscode.l10n.t('Open Downloads Page');
+	const selection = await vscode.window.showWarningMessage(
+		vscode.l10n.t('⚠️ Automatic updates are not available for this Kiro installation. Run the installer manually.'),
+		runBtn,
+		downloadsBtn
+	);
+	if (selection === runBtn) {
+		if (info.platform === 'darwin') {
+			await openExternalSafe(DOWNLOADS_PAGE_URL, 'downloads page');
+		} else {
+			await openInstallerFile(filePath);
+		}
+	} else if (selection === downloadsBtn) {
+		await openExternalSafe(DOWNLOADS_PAGE_URL, 'downloads page');
 	}
 }
 
@@ -1123,7 +1320,7 @@ interface SpawnOutcome {
 	error?: NodeJS.ErrnoException;
 }
 
-async function spawnDetachedInstaller(installerPath: string, args: string[], extraEnv?: NodeJS.ProcessEnv): Promise<boolean> {
+async function spawnDetachedInstaller(installerPath: string, args: string[], extraEnv?: NodeJS.ProcessEnv): Promise<ChildProcess | null> {
 	for (let attempt = 0; ; attempt++) {
 		// Spawn failures arrive as an asynchronous 'error' event; only treat the
 		// process as started after the 'spawn' event fires.
@@ -1153,7 +1350,7 @@ async function spawnDetachedInstaller(installerPath: string, args: string[], ext
 			outcome.child.on('error', err => log(`Installer process error: ${err}`));
 			outcome.child.unref();
 			log(`Installer started (pid ${outcome.child.pid ?? 'unknown'}).`);
-			return true;
+			return outcome.child;
 		}
 
 		const code = outcome.error?.code;
@@ -1161,13 +1358,31 @@ async function spawnDetachedInstaller(installerPath: string, args: string[], ext
 		const delay = SPAWN_RETRY_DELAYS_MS[attempt];
 		if (!retryable || delay === undefined) {
 			log(`Failed to start the silent update process: ${outcome.error}`);
-			return false;
+			return null;
 		}
 		// Antivirus scanners briefly lock freshly downloaded installers (EBUSY);
 		// back off and retry like other updaters do.
 		log(`Could not start the update process (${code}); retrying in ${Math.round(delay / 1000)}s...`);
 		await delayMs(delay);
 	}
+}
+
+function waitForEarlyExit(child: ChildProcess, ms: number): Promise<number | null> {
+	return new Promise((resolve) => {
+		if (child.exitCode !== null) {
+			resolve(child.exitCode);
+			return;
+		}
+		const timer = setTimeout(() => {
+			child.removeListener('exit', onExit);
+			resolve(null);
+		}, ms);
+		const onExit = (code: number | null) => {
+			clearTimeout(timer);
+			resolve(code ?? -1);
+		};
+		child.once('exit', onExit);
+	});
 }
 
 function hasWindowsInnoInstaller(): boolean {
@@ -1178,6 +1393,19 @@ function hasWindowsInnoInstaller(): boolean {
 	} catch (err) {
 		log(`Failed to inspect the Windows install root: ${err}`);
 		return false;
+	}
+}
+
+function canWriteToDirectory(dir: string): boolean {
+	const probe = path.join(dir, `.kuc-write-probe-${process.pid}-${Date.now()}.tmp`);
+	try {
+		fs.writeFileSync(probe, 'x');
+		return true;
+	} catch (err) {
+		log(`Install directory is not writable: ${dir} (${err})`);
+		return false;
+	} finally {
+		try { fs.unlinkSync(probe); } catch { /* ignore */ }
 	}
 }
 
@@ -1193,38 +1421,43 @@ async function applySilentUpdateWindows(version: string, installerPath: string):
 			try { fs.unlinkSync(updateFlag); } catch { /* ignore */ }
 		}
 		windowsUpdateFlagPath = null;
+		void extensionContext?.globalState.update(STATE_KEY_PENDING_FLAG, undefined);
 	};
 
 	try {
 		const product = readKiroProductInfo();
 		const installDir = path.resolve(vscode.env.appRoot, '..', '..');
-		const flagDir = getUpdateStateDir();
 
-		// Clean stale state from previous attempts (including flags for other versions).
-		for (const stale of [path.join(flagDir, 'session-ending.flag'), path.join(flagDir, 'update-progress'), path.join(flagDir, 'cancel.flag')]) {
-			try { fs.unlinkSync(stale); } catch { /* ignore */ }
+		// A system-wide install cannot be replaced without elevation; the native
+		// updater runs elevated, while our RunAsInvoker spawn cannot. Fall back to
+		// the manual installer instead of failing inside the Inno updater.
+		if (!canWriteToDirectory(installDir)) {
+			log('Silent update needs elevation for this installation; falling back to the manual installer.');
+			return false;
 		}
-		try {
-			for (const name of fs.readdirSync(flagDir)) {
-				if (/^KiroSetup-.*\.flag$/i.test(name)) {
-					try { fs.unlinkSync(path.join(flagDir, name)); } catch { /* ignore */ }
-				}
-			}
-		} catch { /* ignore */ }
+
+		// Random per-attempt directory: an elevated setup must not write to a
+		// predictable, user-writable path.
+		const flagDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kuc-update-'));
 
 		updateFlag = path.join(flagDir, `KiroSetup-${product.quality}-${version}.flag`);
 		const sessionEndFlag = path.join(flagDir, 'session-ending.flag');
 		const progressPath = path.join(flagDir, 'update-progress');
 		const cancelFlag = path.join(flagDir, 'cancel.flag');
+		const innoLogPath = path.join(flagDir, `inno-update-${version}-${Date.now()}.log`);
 		fs.writeFileSync(updateFlag, 'flag');
 		windowsUpdateFlagPath = updateFlag;
 
 		// Exact invocation Kiro's updater uses (validated against 1.1.x and 1.4.x):
 		// /dir, /progress, /cancel and RunAsInvoker must match for the setup to stage
-		// silently and signal readiness the way the app expects.
-		const started = await spawnDetachedInstaller(installerPath, [
+		// silently and signal readiness the way the app expects. /suppressmsgboxes
+		// silences Inno's own message boxes; the separate inno_updater may still show
+		// its own error dialog (native behavior). The extension reports failures on
+		// the next session and keeps the setup log for diagnosis.
+		const child = await spawnDetachedInstaller(installerPath, [
 			'/verysilent',
-			'/log',
+			`/log="${innoLogPath}"`,
+			'/suppressmsgboxes',
 			`/dir="${installDir}"`,
 			`/update="${updateFlag}"`,
 			`/progress="${progressPath}"`,
@@ -1233,12 +1466,38 @@ async function applySilentUpdateWindows(version: string, installerPath: string):
 			'/nocloseapplications',
 			'/mergetasks=runcode,!desktopicon,!quicklaunchicon'
 		], { __COMPAT_LAYER: 'RunAsInvoker' });
-		if (started) {
-			log(`Silent Windows update started: ${path.basename(installerPath)}.`);
-		} else {
+		if (!child) {
 			cleanupFlag();
+			return false;
 		}
-		return started;
+
+		// A setup that exits immediately did not stage the update (e.g. access
+		// denied, another setup running). Treat that as a failure instead of
+		// promising a restart that would not apply anything.
+		const earlyExit = await waitForEarlyExit(child, 3000);
+		if (earlyExit !== null && earlyExit !== 0) {
+			cleanupFlag();
+			log(`Installer exited early with code ${earlyExit}.`);
+			return false;
+		}
+
+		// Versioned background updates swap in `new_<exe>`; without it the
+		// inno_updater fails after the app quits ("new executable not found").
+		// Verify the staging before promising a restart.
+		if (isVersionedInstall(installDir)) {
+			const stagedExe = path.join(installDir, `new_${path.basename(process.execPath)}`);
+			const staged = await waitForFile(stagedExe, 90000);
+			if (!staged) {
+				log(`Setup did not stage ${stagedExe}; cancelling the background update.`);
+				try { fs.writeFileSync(cancelFlag, 'cancel'); } catch { /* ignore */ }
+				cleanupFlag();
+				return false;
+			}
+			log(`Setup staged ${path.basename(stagedExe)}; ready to restart.`);
+		}
+
+		log(`Silent Windows update started: ${path.basename(installerPath)} (setup log: ${innoLogPath}).`);
+		return true;
 	} catch (err) {
 		cleanupFlag();
 		log(`Failed to start the silent Windows update: ${err}`);
@@ -1300,11 +1559,12 @@ async function applySilentUpdateMacOS(zipPath: string): Promise<boolean> {
 			'fi'
 		].join('\n') + '\n';
 		fs.writeFileSync(scriptPath, script, { mode: 0o755 });
-		const started = await spawnDetachedInstaller('/bin/bash', [scriptPath]);
-		if (started) {
+		const child = await spawnDetachedInstaller('/bin/bash', [scriptPath]);
+		if (child) {
 			log(`Silent macOS update script started (log: ${logPath}).`);
+			return true;
 		}
-		return started;
+		return false;
 	} catch (err) {
 		log(`Failed to start the silent macOS update: ${err}`);
 		return false;
@@ -1654,8 +1914,9 @@ function getCurrentKiroVersion(): string | null {
 	return null;
 }
 
-export function deactivate() {
+export function deactivate(): Thenable<void> | void {
 	log('Kiro Update Checker deactivated.');
+	let pendingUpdate: Thenable<void> | undefined;
 	// Only remove the flag when the user actually requested a restart: deactivate
 	// also runs on window reloads and extension host restarts, where the app keeps
 	// running and the setup must stay waiting.
@@ -1667,11 +1928,13 @@ export function deactivate() {
 			log(`Could not remove the update flag: ${err}`);
 		}
 		windowsUpdateFlagPath = null;
-		void extensionContext?.globalState.update(STATE_KEY_PENDING_FLAG, undefined);
+		pendingUpdate = extensionContext?.globalState.update(STATE_KEY_PENDING_FLAG, undefined);
+		releaseInstallerLock();
 	}
 	setLogSink(null);
 	outputChannel = null;
 	extensionContext = null;
+	return pendingUpdate;
 }
 
 // Exported for unit testing

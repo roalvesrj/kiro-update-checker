@@ -2,7 +2,7 @@
   "name": "kiro-update-checker",
   "displayName": "Kiro Update Checker",
   "description": "Automatically checks Kiro's official update feed for new IDE releases. Intended for users running Kiro in Administrator mode, where the built-in update feature may not be available.",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "icon": "images/KUC-logo.png",
   "publisher": "roalvesrj",
   "repository": {
@@ -16,6 +16,15 @@
   "engines": {
     "vscode": "^1.93.0"
   },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
+  "extensionKind": [
+    "ui"
+  ],
+  "license": "SEE LICENSE IN LICENSE.txt",
   "categories": [
     "Other"
   ],
@@ -23,8 +32,8 @@
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
+  "l10n": "./l10n",
   "contributes": {
-    "l10n": "./l10n",
     "commands": [
       {
         "command": "kiro-update-checker.checkNow",
@@ -37,11 +46,13 @@
         "kiroUpdateChecker.checkInterval": {
           "type": "number",
           "default": 60,
+          "scope": "machine",
           "description": "%kiroUpdateChecker.checkInterval.description%"
         },
         "kiroUpdateChecker.enableOnStartup": {
           "type": "boolean",
           "default": true,
+          "scope": "machine",
           "description": "%kiroUpdateChecker.enableOnStartup.description%"
         },
         "kiroUpdateChecker.update": {

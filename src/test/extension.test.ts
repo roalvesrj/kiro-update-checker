@@ -444,8 +444,12 @@ suite('artifactFor', () => {
 		assert.strictEqual(artifactFor(artifacts, 'exe', '1.4.1')?.version, '1.4.1');
 	});
 
-	test('falls back to the first matching artifact when the version is absent', () => {
-		assert.strictEqual(artifactFor(artifacts, 'exe', '9.9.9')?.version, '1.4.1');
+	test('returns null when no artifact matches the requested version', () => {
+		assert.strictEqual(artifactFor(artifacts, 'exe', '9.9.9'), null);
+	});
+
+	test('returns the first matching artifact when no version is requested', () => {
+		assert.strictEqual(artifactFor(artifacts, 'exe')?.version, '1.4.1');
 	});
 
 	test('returns null when no artifact has the requested extension', () => {
@@ -463,6 +467,23 @@ suite('shellQuote', () => {
 	});
 });
 
+
+suite('manifest', () => {
+	const root = path.join(__dirname, '..', '..');
+	const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+
+	test('declares the l10n bundles at the top level (not in contributes)', () => {
+		assert.strictEqual(pkg.l10n, './l10n');
+		assert.strictEqual(pkg.contributes?.l10n, undefined);
+		assert.ok(fs.existsSync(path.join(root, 'l10n', 'bundle.l10n.json')));
+		assert.ok(fs.existsSync(path.join(root, 'l10n', 'bundle.l10n.pt-br.json')));
+	});
+
+	test('uses lowercase locale identifiers for bundles', () => {
+		const bundles = fs.readdirSync(path.join(root, 'l10n'));
+		assert.ok(bundles.every(name => name === name.toLowerCase()), `unexpected locale casing: ${bundles.join(', ')}`);
+	});
+});
 
 suite('l10n contract', () => {
 	test('every l10n key used in code exists in all bundles with matching placeholders', () => {

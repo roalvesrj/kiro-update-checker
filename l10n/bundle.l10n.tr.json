@@ -19,5 +19,10 @@
 	"Kiro Update Checker: An update check is already in progress.": "Kiro Update Checker: zaten bir güncelleme denetimi sürüyor.",
 	"Restart to Update": "Güncellemek için yeniden başlat",
 	"🔄 Kiro {0} is ready. Restart to update.": "🔄 Kiro {0} hazır. Güncellemek için yeniden başlatın.",
-	"❌ Kiro Update Checker: Automatic update failed. Please install manually.": "❌ Kiro Update Checker: otomatik güncelleme başarısız. Lütfen elle yükleyin."
+	"❌ Kiro Update Checker: Automatic update failed. Please install manually.": "❌ Kiro Update Checker: otomatik güncelleme başarısız. Lütfen elle yükleyin.",
+	"⚠️ The automatic update to Kiro {0} did not complete. You can retry or install it manually.": "⚠️ Kiro {0} otomatik güncellemesi tamamlanmadı. Yeniden deneyebilir veya elle yükleyebilirsiniz.",
+	"Retry Update": "Güncellemeyi yeniden dene",
+	"⚠️ Automatic updates are not available for this Kiro installation. Run the installer manually.": "⚠️ Bu Kiro kurulumu için otomatik güncellemeler kullanılamıyor. Yükleyiciyi elle çalıştırın.",
+	"Run Installer": "Yükleyiciyi çalıştır",
+	"Open Logs": "Günlükleri aç"
 }
