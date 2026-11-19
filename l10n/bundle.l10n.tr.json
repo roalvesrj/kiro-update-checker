@@ -24,5 +24,6 @@
 	"Retry Update": "Güncellemeyi yeniden dene",
 	"⚠️ Automatic updates are not available for this Kiro installation. Run the installer manually.": "⚠️ Bu Kiro kurulumu için otomatik güncellemeler kullanılamıyor. Yükleyiciyi elle çalıştırın.",
 	"Run Installer": "Yükleyiciyi çalıştır",
-	"Open Logs": "Günlükleri aç"
+	"Open Logs": "Günlükleri aç",
+	"⤵️ Installing Kiro {0}. Kiro will restart when done.": "⤵️ Kiro {0} yükleniyor. Tamamlandığında Kiro yeniden başlatılacak."
 }

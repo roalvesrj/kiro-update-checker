@@ -112,6 +112,12 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 0.5.2
+
+- **Fixed:** when the Windows background update fails to stage `new_<exe>`, the setup is cancelled and terminated — the `inno_updater` "new executable not found" dialog can no longer appear later
+- **Fixed:** after a failed staging, the extension retries with the standard installer mode (no `/update`), which does not use `inno_updater`; the installer closes Kiro, installs and relaunches it
+- A notification shows "Installing Kiro {0}. Kiro will restart when done." during the standard install fallback
+
 ### 0.5.1
 
 - **Fixed:** localization bundles were not loading at all (the `l10n` field was in the wrong manifest section); all 15 languages now load, with lowercase locale identifiers

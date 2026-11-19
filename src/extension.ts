@@ -964,7 +964,7 @@ async function showDownloadError(latestVersion: string): Promise<void> {
 	);
 }
 
-type StageResult = 'ok' | 'untrusted' | 'failed' | 'busy';
+type StageResult = 'ok' | 'installing' | 'untrusted' | 'failed' | 'busy';
 
 async function stageSilentUpdate(
 	context: vscode.ExtensionContext,
@@ -990,6 +990,20 @@ async function stageSilentUpdate(
 
 	const applied = await applySilentUpdate(info, latestVersion, filePath);
 	if (!applied) {
+		if (process.platform === 'win32') {
+			log('Background update failed; trying a standard silent install (no inno_updater).');
+			await context.globalState.update(STATE_KEY_PENDING_UPDATE, {
+				version: latestVersion,
+				platform: info.platform,
+				stagedAt: Date.now(),
+				mainPid: process.ppid
+			} satisfies PendingUpdate);
+			const fullInstall = await applyFullSilentInstallWindows(latestVersion, filePath);
+			if (fullInstall) {
+				return 'installing';
+			}
+			await context.globalState.update(STATE_KEY_PENDING_UPDATE, undefined);
+		}
 		releaseInstallerLock();
 		return 'failed';
 	}
@@ -1024,6 +1038,10 @@ async function handleDownloadedInstaller(
 		const staged = await stageSilentUpdate(context, info, latestVersion, filePath);
 		if (staged === 'ok') {
 			showRestartNotification(context, latestVersion, filePath);
+			return;
+		}
+		if (staged === 'installing') {
+			showInstallingNotification(latestVersion);
 			return;
 		}
 		if (staged === 'untrusted') {
@@ -1069,6 +1087,8 @@ function showInstallNotification(
 				const staged = await stageSilentUpdate(context, info, latestVersion, filePath);
 				if (staged === 'ok') {
 					showRestartNotification(context, latestVersion, filePath);
+				} else if (staged === 'installing') {
+					showInstallingNotification(latestVersion);
 				} else if (staged === 'untrusted') {
 					await showIntegrityError(filePath);
 				} else if (staged === 'busy') {
@@ -1287,6 +1307,12 @@ async function showManualFallback(context: vscode.ExtensionContext, info: Platfo
 	}
 }
 
+function showInstallingNotification(version: string): void {
+	void vscode.window.showInformationMessage(
+		vscode.l10n.t('⤵️ Installing Kiro {0}. Kiro will restart when done.', version)
+	);
+}
+
 async function showIntegrityError(filePath: string): Promise<void> {
 	log(`Refusing to run the installer at ${filePath}: integrity check failed.`);
 	try {
@@ -1416,6 +1442,7 @@ async function applySilentUpdateWindows(version: string, installerPath: string):
 	}
 
 	let updateFlag: string | null = null;
+	let child: ChildProcess | null = null;
 	const cleanupFlag = () => {
 		if (updateFlag) {
 			try { fs.unlinkSync(updateFlag); } catch { /* ignore */ }
@@ -1454,7 +1481,7 @@ async function applySilentUpdateWindows(version: string, installerPath: string):
 		// silences Inno's own message boxes; the separate inno_updater may still show
 		// its own error dialog (native behavior). The extension reports failures on
 		// the next session and keeps the setup log for diagnosis.
-		const child = await spawnDetachedInstaller(installerPath, [
+		child = await spawnDetachedInstaller(installerPath, [
 			'/verysilent',
 			`/log="${innoLogPath}"`,
 			'/suppressmsgboxes',
@@ -1490,6 +1517,10 @@ async function applySilentUpdateWindows(version: string, installerPath: string):
 			if (!staged) {
 				log(`Setup did not stage ${stagedExe}; cancelling the background update.`);
 				try { fs.writeFileSync(cancelFlag, 'cancel'); } catch { /* ignore */ }
+				// Give the setup a moment to observe the cancel flag, then make sure
+				// it cannot invoke inno_updater later and show the error dialog.
+				await delayMs(1500);
+				try { child.kill(); } catch { /* ignore */ }
 				cleanupFlag();
 				return false;
 			}
@@ -1499,8 +1530,46 @@ async function applySilentUpdateWindows(version: string, installerPath: string):
 		log(`Silent Windows update started: ${path.basename(installerPath)} (setup log: ${innoLogPath}).`);
 		return true;
 	} catch (err) {
+		try { child?.kill(); } catch { /* ignore */ }
 		cleanupFlag();
 		log(`Failed to start the silent Windows update: ${err}`);
+		return false;
+	}
+}
+
+async function applyFullSilentInstallWindows(version: string, installerPath: string): Promise<boolean> {
+	try {
+		const installDir = path.resolve(vscode.env.appRoot, '..', '..');
+		const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kuc-full-'));
+		const innoLogPath = path.join(logDir, `inno-full-${version}-${Date.now()}.log`);
+
+		// Safety net: if the installer does not relaunch Kiro itself, the scheduled
+		// task starts it after the installer exits.
+		scheduleWindowsRelaunch();
+
+		// Standard silent install: without /update, IsBackgroundUpdate() is false,
+		// so the setup does not run inno_updater and does not need new_<exe>.
+		// CloseApplications=force closes Kiro; the runcode task relaunches it.
+		const child = await spawnDetachedInstaller(installerPath, [
+			'/verysilent',
+			`/log="${innoLogPath}"`,
+			'/suppressmsgboxes',
+			'/norestart',
+			`/dir="${installDir}"`,
+			'/mergetasks=runcode,!desktopicon,!quicklaunchicon'
+		]);
+		if (!child) {
+			return false;
+		}
+		const earlyExit = await waitForEarlyExit(child, 3000);
+		if (earlyExit !== null && earlyExit !== 0) {
+			log(`Standard installer exited early with code ${earlyExit}.`);
+			return false;
+		}
+		log(`Standard silent install started (setup log: ${innoLogPath}).`);
+		return true;
+	} catch (err) {
+		log(`Failed to start the standard silent install: ${err}`);
 		return false;
 	}
 }

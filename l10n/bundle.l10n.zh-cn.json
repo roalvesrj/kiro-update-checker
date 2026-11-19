@@ -24,5 +24,6 @@
 	"Retry Update": "重试更新",
 	"⚠️ Automatic updates are not available for this Kiro installation. Run the installer manually.": "⚠️ 此 Kiro 安装不支持自动更新。请手动运行安装程序。",
 	"Run Installer": "运行安装程序",
-	"Open Logs": "打开日志"
+	"Open Logs": "打开日志",
+	"⤵️ Installing Kiro {0}. Kiro will restart when done.": "⤵️ 正在安装 Kiro {0}。完成后 Kiro 将重新启动。"
 }

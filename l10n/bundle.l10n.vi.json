@@ -24,5 +24,6 @@
 	"Retry Update": "Thử lại cập nhật",
 	"⚠️ Automatic updates are not available for this Kiro installation. Run the installer manually.": "⚠️ Cập nhật tự động không khả dụng cho bản cài Kiro này. Hãy chạy trình cài đặt thủ công.",
 	"Run Installer": "Chạy trình cài đặt",
-	"Open Logs": "Mở nhật ký"
+	"Open Logs": "Mở nhật ký",
+	"⤵️ Installing Kiro {0}. Kiro will restart when done.": "⤵️ Đang cài đặt Kiro {0}. Kiro sẽ khởi động lại khi hoàn tất."
 }

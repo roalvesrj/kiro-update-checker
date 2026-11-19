@@ -24,5 +24,6 @@
 	"Retry Update": "Update erneut versuchen",
 	"⚠️ Automatic updates are not available for this Kiro installation. Run the installer manually.": "⚠️ Automatische Updates sind für diese Kiro-Installation nicht verfügbar. Führen Sie das Installationsprogramm manuell aus.",
 	"Run Installer": "Installer ausführen",
-	"Open Logs": "Protokolle öffnen"
+	"Open Logs": "Protokolle öffnen",
+	"⤵️ Installing Kiro {0}. Kiro will restart when done.": "⤵️ Kiro {0} wird installiert. Kiro wird nach Abschluss neu gestartet."
 }

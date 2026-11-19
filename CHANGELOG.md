@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.5.2] - 2026-11-19
+### Fixed
+- **Windows background update failure**: when the setup does not stage `new_<exe>` in time, the extension now cancels **and terminates** the background setup, so `inno_updater` can no longer run later and open its "new executable not found" error dialog
+- **Standard silent install fallback**: after a failed background staging, the extension now retries with the setup in standard mode (no `/update`), which bypasses `inno_updater` entirely — the installer closes Kiro, replaces the files and relaunches it (the `runcode` task)
+- The update check now shows "Installing Kiro {0}. Kiro will restart when done." when the standard install fallback starts
+- New l10n string for the installing notice in all 15 languages
+
 ## [0.5.1] - 2026-11-19
 ### Fixed
 - **Localization was never loading**: the `l10n` field was under `contributes` instead of the manifest top level, so all 15 bundles were ignored. Bundles now load, and locale file names use lowercase identifiers (`pt-br`, `pt-pt`)
