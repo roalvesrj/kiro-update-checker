@@ -40,8 +40,21 @@ The Windows auto-update failure is a **Kiro ↔ Microsoft inno-updater integrati
 ## Tests
 
 - Windows: **100 tests passing** (compile + lint clean).
-- Linux: 98 passing, 3 pending (Windows-only) from test.1; the capability change is platform-independent and covered by the unit matrix.
-- A non-versioned **clone of the local 1.4.215 install** is being updated end-to-end as the final gate.
+- **Real machine validated:** local Kiro **1.4.215 non-versioned → 1.5.49** using this VSIX.
+  - `Setup used the non-versioned staging layout; switching to the standard silent install.`
+  - VBS log: `installer exited with 0`
+  - **Zero `inno_updater` logs**.
+  - Next session: `Cleared pending update state (now on 1.5.49)`; comparison result 0.
+- Linux: 98 passing, 3 pending (Windows-only), from test.1; the capability change is platform-independent and covered by the unit matrix.
+
+## Kiro 1.5.49 still ships the broken updater
+
+After the update, Kiro 1.5.49 still has:
+- `tools/inno_updater.exe` **0.26.0** (`ProductVersion 04da21f70a`)
+- `win32VersionedUpdate` **absent** (still non-versioned)
+
+So the native background `/update` path remains broken in 1.5.49. This extension's standard-install workaround is required for every non-versioned update, not just the one-time transition.
+
 
 ## Artifact
 
