@@ -1,0 +1,1 @@
+bdc1dae2ba693ac612c2f572f12c3dc5d019e5c6031f4af249598ab18575a463  kiro-update-checker-0.5.3-test.2.vsix
